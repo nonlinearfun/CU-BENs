@@ -762,8 +762,8 @@ int graph (long *pjnt, long *pxadj, long *pjcode, int *pwrpres, long *pminc, lon
            structure */
         max = 0;
         for (j = *(pxadj+i); j < *(pxadj+i+1); ++j) {
-            if (abs(adjncy[j] - i) > max) {
-                max = abs(adjncy[j] - i);
+            if (labs(adjncy[j] - i) > max) {
+                max = labs(adjncy[j] - i);
             }
         }
         prof += max;
@@ -855,7 +855,7 @@ int optnum (long *pjnt, long *padjncy, long *pxadj, long *pband, long *pprof,
 
 						/* Calculate "bandwidth" and compare to existing; terminate attempt
 						   if "bandwidth" is greater than or equal to existing */
-						nband = abs(i - k);
+						nband = labs(i - k);
 						if (nband <= *pband) {
 							if (nband > max) {
 								max = nband;
@@ -885,8 +885,8 @@ int optnum (long *pjnt, long *padjncy, long *pxadj, long *pband, long *pprof,
                 // Determine maximum "bandwidth" associated with joint
                 max = 0;
                 for (j = *(pxadj+joint[i]); j < *(pxadj+joint[i]+1); ++j) {
-                    if (abs(*(padjncy+j) - i) > max) {
-                        max = abs(*(padjncy+j) - i);
+                    if (labs(*(padjncy+j) - i) > max) {
+                        max = labs(*(padjncy+j) - i);
                     }
                 }
                 nprof += max;
