@@ -1,5 +1,6 @@
 CC = gcc
 CFLAGS = -m64
+#linker paths to BLAS and LAPACK for use with Mac OS X 10.10 or later
 LIBS = -lm /usr/lib/libblas.dylib /usr/lib/liblapack.dylib
 
 DEPS = prototypes.h
