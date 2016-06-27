@@ -77,8 +77,7 @@ int graph (long *pjnt, long *pxadj, long *pjcode, int *pwrpres, long *pminc, lon
 /* This function provides the optimum node-numbering scheme, with respect to minimization
    of the bandwidth of the stiffness array; it follows the procedure outlined by Collins
    (1973) */
-int optnum (long *pjnt, long *padjncy, long *pxadj, long *pband, long *pprof,
-    int *pflag);
+int optnum (long *pjnt, long *padjncy, long *pxadj, int *pflag);
 
 /* This function updates all previously defined joint-dependent variables so that they
    reflect the optimum node-numbering scheme determined from optnum() */

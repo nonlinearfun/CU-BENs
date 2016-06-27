@@ -153,7 +153,6 @@ int struc (long *pjcode, long *pminc, int *pwrpres, long *pjnt)
     ptr += NE_SH * 3;
     for (i = 0; i < NE_BR; ++i) {
         // Read in nodes 1-8 from input file
-        //fscanf(IFP[0], "%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld\n", pminc+ptr+i*3, pminc+ptr+i*3+1, pminc+ptr+i*3+2, pminc+ptr+i*3+3, pminc+ptr+i*3+4, pminc+ptr+i*3+5, pminc+ptr+i*3+6, pminc+ptr+i*3+7);
         fscanf(IFP[0], "%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld\n", pminc+ptr+i*8, pminc+ptr+i*8+1, pminc+ptr+i*8+2, pminc+ptr+i*8+3, pminc+ptr+i*8+4, pminc+ptr+i*8+5, pminc+ptr+i*8+6, pminc+ptr+i*8+7);
 		jflag[(*(pminc+ptr+i*8)-1)*3+3]++; // Brick element is connected to Joint j
         jflag[(*(pminc+ptr+i*8+1)-1)*3+3]++; // Brick element is connected to Joint k
@@ -678,20 +677,19 @@ void renumfsi (long *pminc, long *pmcode, long *pjcode, long *pelface, long *pfs
 }		
 						
 int graph (long *pjnt, long *pxadj, long *pjcode, int *pwrpres, long *pminc, long *pjinc,
-    long *pjincloc)
+           long *pjincloc)
 {
     // Initialize function variables
-    long i, j, k, l, m, n, o, ptr, ptr2, max, band, prof;
+    long i, j, k, l, m, n, o, ptr, ptr2;
     int errchk, flag = 0;
     long *adjncy = alloc_long (*(pxadj+NJ));
     if (adjncy == NULL) {
         return 1;
     }
-
+    
     // Generate DOF-weights and adjacency structure for each joint
     ptr = NE_TR * 2;
     ptr2 = NE_TR * 2 + NE_FR * 2;
-    band = prof = 0;
     for (i = 0; i < NJ; ++i) {
         o = 0;
         // Generate adjacency structure related to truss members
@@ -740,41 +738,11 @@ int graph (long *pjnt, long *pxadj, long *pjcode, int *pwrpres, long *pminc, lon
                 o += 2;
             }
         }
-
-        /* If duplicate joints exist in adjacency structure for a given joint, eliminate
-           duplicates and reduce adjacency "locator array" value by one */
-        for (j = 0; j < *(pxadj+i+1) - *(pxadj+i); ++j) {
-			for (k = j + 1; k < *(pxadj+i+1) - *(pxadj+i); ++k) {
-				while (adjncy[*(pxadj+i)+k] == adjncy[*(pxadj+i)+j] &&
-					*(pxadj+i)+k != *(pxadj+i+1)) {
-					for (l = k; l < *(pxadj+i+1) - *(pxadj+i) - 1; ++l) {
-						adjncy[*(pxadj+i)+l] = adjncy[*(pxadj+i)+l+1];
-	                }
-	                for (l = i + 1; l < NJ + 1; ++l) {
-                        (*(pxadj+l))--;
-					}
-	            }
-			}
-        }
-
-        /* Determine maximum "bandwidth" associated with joint, add contribution to
-           "profile," and compare to most recent maximum "bandwidth" associated with
-           structure */
-        max = 0;
-        for (j = *(pxadj+i); j < *(pxadj+i+1); ++j) {
-            if (labs(adjncy[j] - i) > max) {
-                max = labs(adjncy[j] - i);
-            }
-        }
-        prof += max;
-        if (max > band) {
-            band = max;
-        }
     }
-
+    
     // Pass control to optnum function
-    errchk = optnum (pjnt, adjncy, pxadj, &band, &prof, &flag);
-
+    errchk = optnum (pjnt, adjncy, pxadj, &flag);
+    
     // Terminate program if errors encountered
     if (errchk == 1) {
         if (adjncy != NULL) {
@@ -783,13 +751,13 @@ int graph (long *pjnt, long *pxadj, long *pjcode, int *pwrpres, long *pminc, lon
         }
         return 1;
     }
-
+    
     if (flag == 1) {
         fprintf(OFP[0], "\n***WARNING*** Original node-numbering scheme modified\n");
-
+        
         // Pass control to updatenum function
         errchk = updatenum (pjcode, pminc, pwrpres, pjnt);
-
+        
         // Terminate program if errors encountered
         if (errchk == 1) {
             if (adjncy != NULL) {
@@ -799,7 +767,7 @@ int graph (long *pjnt, long *pxadj, long *pjcode, int *pwrpres, long *pminc, lon
             return 1;
         }
     }
-
+    
     if (adjncy != NULL) {
         free (adjncy);
         adjncy = NULL;
@@ -807,11 +775,10 @@ int graph (long *pjnt, long *pxadj, long *pjcode, int *pwrpres, long *pminc, lon
     return 0;
 }
 
-int optnum (long *pjnt, long *padjncy, long *pxadj, long *pband, long *pprof,
-    int *pflag)
+int optnum (long *pjnt, long *padjncy, long *pxadj, int *pflag)
 {
     // Initialize function variables
-    long ik, i, max, k, kmax, k4, jj, k5, nband, nprof, j;
+    long ik, i, max, k, kmax, k4, jj, k5, band, nband, prof, nprof;
     long *newjt = alloc_long (NJ);
     if (newjt == NULL) {
         return 1;
@@ -824,95 +791,93 @@ int optnum (long *pjnt, long *padjncy, long *pxadj, long *pband, long *pprof,
         }
         return 1;
     }
-
-	*pflag = 0; // Initialize flag for updating node numbering
-
+    
+    *pflag = 0; // Initialize flag for updating node numbering
+    
     // Attempt a node-numbering scheme setting each old node as the starting node
+    band = NJ*7;
+    prof = band * band;
     for (ik = 0; ik < NJ; ++ik) {
         // Initialize sub-routine variables for the ik'th starting node
         for (i = 0; i < NJ; ++i) {
             joint[i] = newjt[i] = -1;
         }
         max = 0;
+        nprof = 0;
         i = 0;
         newjt[0] = ik;
         joint[ik] = 0;
         k = kmax = 0;
-
+        
         do {
             // Determine number of nodes connected to i'th new node
             if (newjt[i] != -1) {
-				k4 = *(pxadj+newjt[i]+1) - *(pxadj+newjt[i]);
-
-				// Consecutively number nodes connected to i'th new node
-				for (jj = 0; jj < k4; ++jj) {
-					k5 = *(padjncy+*(pxadj+newjt[i])+jj);
-					if (joint[k5] == -1) {
-						k++;
-						kmax++;
-						newjt[k] = k5;
-						joint[k5] = k;
-
-						/* Calculate "bandwidth" and compare to existing; terminate attempt
-						   if "bandwidth" is greater than or equal to existing */
-						nband = labs(i - k);
-						if (nband <= *pband) {
-							if (nband > max) {
-								max = nband;
-							}
-						} else {
-							k = NJ;
-							break;
-						}
-					}
-				}
-            } else if (newjt[i] == -1 && k != 0) {
-				k++;
-				newjt[k] = newjt[k-1] - 1;
-            } else {
-            	k = NJ;
-            	break;
-            }
-            i++;
-        } while (k < NJ - 1);
-
-        /* If all joints were assigned new joint numbers, compute profile of proposed
-           joint-numbering scheme */
-        if (k == NJ - 1) {
-            nband = max;
-            nprof = 0;
-            for (i = 0; i < NJ; ++i) {
-                // Determine maximum "bandwidth" associated with joint
-                max = 0;
-                for (j = *(pxadj+joint[i]); j < *(pxadj+joint[i]+1); ++j) {
-                    if (labs(*(padjncy+j) - i) > max) {
-                        max = labs(*(padjncy+j) - i);
+                k4 = *(pxadj+newjt[i]+1) - *(pxadj+newjt[i]);
+                
+                // Consecutively number nodes connected to i'th new node
+                for (jj = 0; jj < k4; ++jj) {
+                    k5 = *(padjncy+*(pxadj+newjt[i])+jj);
+                    if (joint[k5] == -1) {
+                        k++;
+                        kmax++;
+                        newjt[k] = k5;
+                        joint[k5] = k;
+                        
+                        /* Calculate "bandwidth" and compare to existing; terminate attempt
+                         if "bandwidth" is greater than or equal to existing */
+                        nband = labs(i - k);
+                        if (nband <= band) {
+                            if (nband > max) {
+                                max = nband;
+                            }
+                        } else {
+                            break;
+                        }
                     }
                 }
-                nprof += max;
-                if (nprof >= *pprof) {
-                    break;
-                }
+            } else if (newjt[i] == -1 && k != 0) {
+                k++;
+                newjt[k] = newjt[k-1] - 1;
+            } else {
+                break;
             }
-
+            nprof += max;
+            i++;
+        } while (k < NJ - 1);
+        /* If all joints were assigned new joint numbers, compute profile of proposed
+         joint-numbering scheme */
+        if (k == NJ - 1) {
+            nband = max;
             /* If profile of proposed joint-numbering scheme is less than current
-               profile, store joint-numbering scheme */
-            if (i == NJ && nprof < *pprof) {
+             profile, store joint-numbering scheme */
+            if (nband < band) {
                 *pflag = 1;
-                *pband = nband;
-                *pprof = nprof;
+                band = nband;
+                prof = nprof;
                 for (i = 0; i < NJ; ++i) {
-                	if (joint[i] != -1) {
-						*(pjnt+i) = joint[i];
-                	} else {
-                		kmax++;
-                		*(pjnt+i) = kmax;
-                	}
+                    if (joint[i] != -1) {
+                        *(pjnt+i) = joint[i];
+                    } else {
+                        kmax++;
+                        *(pjnt+i) = kmax;
+                    }
+                }
+            } else if (nband == band && nprof < prof) {
+                *pflag = 1;
+                band = nband;
+                prof = nprof;
+                for (i = 0; i < NJ; ++i) {
+                    if (joint[i] != -1) {
+                        *(pjnt+i) = joint[i];
+                    } else {
+                        kmax++;
+                        *(pjnt+i) = kmax;
+                    }
                 }
             }
         }
     }
-
+    
     if (newjt != NULL) {
         free (newjt);
         newjt = NULL;
@@ -940,46 +905,46 @@ int updatenum (long *pjcode, long *pminc, int *pwrpres, long *pjnt)
         }
         return 1;
     }
-
+    
     // Transfer variables with new node-numbering scheme to temporary variables
     for (i = 0; i < NJ; ++i) {
         // Transfer jcode
         for (j = 0; j < 7; ++j) {
             jcode[*(pjnt+i)*7+j] = *(pjcode+i*7+j);
         }
-
+        
         // Transfer wrpres
         for (j = 0; j < 3; ++j) {
-            wrpres[*(pjnt+i)*3+j] = *(wrpres+i*3+j);
+            wrpres[*(pjnt+i)*3+j] = *(pwrpres+i*3+j);
         }
     }
-
+    
     // Update variables with new node-numbering scheme
     for (i = 0; i < NJ; ++i) {
         // Update jcode
         for (j = 0; j < 7; ++j) {
             *(pjcode+i*7+j) = jcode[i*7+j];
         }
-
+        
         // Update wrpres
         for (j = 0; j < 3; ++j) {
             *(wrpres+i*3+j) = wrpres[i*3+j];
         }
     }
-
+    
     // Update truss member incidences
     for (i = 0; i < NE_TR; ++i) {
         *(pminc+i*2) = *(pjnt+*(pminc+i*2)-1) + 1;
         *(pminc+i*2+1) = *(pjnt+*(pminc+i*2+1)-1) + 1;
     }
-
+    
     // Update frame member incidences
     ptr = NE_TR * 2;
     for (i = 0; i < NE_FR; ++i) {
         *(pminc+ptr+i*2) = *(pjnt+*(pminc+ptr+i*2)-1) + 1;
         *(pminc+ptr+i*2+1) = *(pjnt+*(pminc+ptr+i*2+1)-1) + 1;
     }
-
+    
     // Update shell member incidences
     ptr += NE_FR * 2;
     for (i = 0; i < NE_SH; ++i) {
@@ -987,7 +952,7 @@ int updatenum (long *pjcode, long *pminc, int *pwrpres, long *pjnt)
         *(pminc+ptr+i*3+1) = *(pjnt+*(pminc+ptr+i*3+1)-1) + 1;
         *(pminc+ptr+i*3+2) = *(pjnt+*(pminc+ptr+i*3+2)-1) + 1;
     }
-
+    
     if (jcode != NULL) {
         free (jcode);
         jcode = NULL;
@@ -1002,7 +967,7 @@ int updatenum (long *pjcode, long *pminc, int *pwrpres, long *pjnt)
 void codes (long *pmcode, long *pjcode, long *pminc, int *pwrpres)
 {
     long i, j, k, l, m, n, o, p, q, r, ptr, ptr2; // Initialize function variables
-
+    
     if (ANAFLAG != 4){
         // Generate jcode
         NEQ = 0;

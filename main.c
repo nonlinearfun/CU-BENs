@@ -351,7 +351,7 @@ int main (int argc, char **argv)
     // Total number of bricks
 	NE_BR = NE_SBR + NE_FBR; 
     
-    // Set up flags to determine whther the solid elements are shells or bricks
+    // Set up flags to determine whether the solid elements are shells or bricks
     if (NE_SH > NE_SBR) {
         shFSI_FLAG = 1;
     }
@@ -382,7 +382,7 @@ int main (int argc, char **argv)
     long *p2p2l[7];
     // Counter to track number of arrays of type long for which memory is allocated
     int nl = 0;
-    /* Pointer-to-pointer-to-double array (65 arrays of type double are defined during
+    /* Pointer-to-pointer-to-double array (96 arrays of type double are defined during
      program execution) */
     double *p2p2d[96];
     // Counter to track number of arrays of type double for which memory is allocated
