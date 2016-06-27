@@ -367,8 +367,8 @@ int main (int argc, char **argv)
 		} while (IFP[1] == 0);
         
 		// Write control variables to optimized input file
-		fprintf(IFP[1], "%d\n%d\n1\n%ld\n%ld,%ld,%ld\n", ANAFLAG, ALGFLAG, NJ,
-                NE_TR, NE_FR, NE_SH);
+		fprintf(IFP[1], "%d\n%d\n%d\n1\n%ld\n%ld,%ld,%ld,%ld,%ld\n", ANAFLAG, ALGFLAG, SLVFLAG, NJ,
+                NE_TR, NE_FR, NE_SH, NE_BR, NE_FBR);
 	}
 	
     // Memory management variables
