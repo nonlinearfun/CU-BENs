@@ -3058,8 +3058,6 @@ int main (int argc, char **argv)
 			output (&lpfmax, &itecnt, d, ef, 1);
 			
 			fprintf(OFP[0], "\nSolution successful!!\n");
-            printf("\n ni = , %d, nl = , %d, nd = , %d\n",ni,nl,nd);
-            
             
 		}
 	}
