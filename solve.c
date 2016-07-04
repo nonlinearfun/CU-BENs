@@ -265,7 +265,7 @@ int solve (long *pjcode, double *pss, double *pss_fsi, double *psm, double *psm_
             
             
             
-            time = k;
+            time = k*dt;
             // Pass control to output function
             output (&time, &dum, puc, puc, 1);
             
