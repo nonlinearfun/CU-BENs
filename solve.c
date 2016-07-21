@@ -289,27 +289,20 @@ int solve (long *pjcode, double *pss, double *pss_fsi, double *psm, double *psm_
             
             //Compute the equivalent change of dynamic external force vector
             
-            if (ANAFLAG == 4) { // FSI analysis, cannot use skyline
-                for (i = 0; i<NEQ; ++i){
-                    for (j = 0; j<NEQ; ++j){
-                        *(pReff+i) = *(pr+i) + (a2 * (*(pvm+i))+ (*(pam+i))) * (*(psm_fsi+i*NEQ+j));
-                    }
-                }
-            }
-            else if (ANAFLAG != 4) { // Non-FSI analysis
+            if (ANAFLAG != 4) { // Non-FSI analysis
                 if (SLVFLAG == 0) { // using skyline funciton
                     for (i = 0; i < NEQ; ++i){
                         *(pReff+i) = *(pr+i) + (a2 * (*(pvm+i))+ (*(pam+i))) * (*(psm+i));
                     }
                 }
-                else if (SLVFLAG == 1) { //using CLAPACK solver
-                    for (i = 0; i<NEQ; ++i){
-                        for(j = 0; j<NEQ; ++j){
-                            *(pReff+i) = *(pr+i) + (a2 * (*(pvm+i))+ (*(pam+i)))* (*(psm+i*NEQ+j));
-                        }
+            }else if (SLVFLAG == 1) { //using CLAPACK solver
+                for (i = 0; i<NEQ; ++i){
+                    for(j = 0; j<NEQ; ++j){
+                        *(pReff+i) = *(pr+i) + (a2 * (*(pvm+i))+ (*(pam+i)))* (*(psm+i*NEQ+j));
                     }
                 }
             }
+            
             
             /*Compute displacement*/
             // Solve for displacements at each iteration
