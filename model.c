@@ -1315,7 +1315,7 @@ int load (double *pq, double *pefFE_ref, double *px, double *pllength, double *p
 		*(pam+i) = 0;
 	}
 
-	if (ALGFLAG != 4) {
+	if (ALGFLAG < 4) {
 		fscanf(IFP[0], "%ld,%d,%lf\n", &jt, &dir, &mag);
 		if (jt != 0) { // Check for joint loading
 			flag = 0;
