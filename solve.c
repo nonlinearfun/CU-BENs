@@ -267,7 +267,7 @@ int solve (long *pjcode, double *pss, double *pss_fsi, double *psm, double *psm_
                 
                 
                 
-                time = k;
+                time = k*dt;
                 // Pass control to output function
                 output (&time, &dum, puc, puc, 1);
                 
@@ -320,13 +320,7 @@ int solve (long *pjcode, double *pss, double *pss_fsi, double *psm, double *psm_
                 dgetrs_(&trans, &n, &nrhs, pKeff, &lda, pipiv, pReff, &ldb, &info);
             }
             
-<<<<<<< HEAD
             //Pass displacement to main for Newton-Raphson iteration
-=======
-            time = k*dt;
-            // Pass control to output function
-            output (&time, &dum, puc, puc, 1);
->>>>>>> upstream/master
             
             for (i = 0; i < NEQ; ++i) {
                 *(pdd+i) = *(pReff+i);

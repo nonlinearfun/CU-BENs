@@ -3029,73 +3029,6 @@ int main (int argc, char **argv)
                           c2, c3, ef, efFE, mendrel, maxa, mcode);
                 mass_fr (sm, carea, llength, istrong, iweak, ipolar, iwarp, dens, osflag,
                          offset, x, xfr, minc, mcode, jac);
-<<<<<<< HEAD
-            }
-            
-            
-            if (NE_SH > 0) {
-                // Pass control to stiff_sh function
-                stiff_sh (ss, emod, nu, x, xlocal, thick, farea, deffarea, slength,
-                          defslen, yield, c1, c2, c3, ef, d, chi, efN, efM, maxa, minc, mcode);
-                mass_sh (sm, carea, dens, thick, farea, slength, x, minc, mcode, jac);
-            }
-            
-            if (NE_BR > 0) {
-                // Pass control to stiff and mass functions
-                stiff_br (ss, x, emod, nu, minc, mcode, jcode, Jinv, jac);
-                mass_br (sm, dens, x, minc, mcode, jac);
-            }
-            
-            /* Evaluate expression for actual dt. If actual dt < input dt, then linearlly
-             interpolate between the input loads to get load, pressure and fluid acceleration
-             values at each dt */
-            double dtmax;
-            dtmax = 1*dt;
-            
-            if (dtmax < dt) {
-                dt = dtmax;
-            }
-            
-            NTSTPS = ttot/dt + 1;
-            double ssd;
-            
-            // Pass control to solve function
-            errchk = solve (jcode, ss, ss, sm, sm, sd_fsi, r, dd, maxa, &ssd, &det, um, vm, am, uc, vc, ac, pinpt, tinpt,
-                            Keff, Reff, Meff, alpha, delta, ipiv, 0);
-            
-            // Terminate program if errors encountered
-            if (errchk == 1) {
-                goto EXIT2;
-            }
-            
-            if (NE_TR > 0) {
-                // Pass control to forces_tr function
-                forces_tr (f, ef, d, emod, carea, llength, defllen, yield, c1, c2, c3,
-                           mcode);
-            }
-            
-            if (NE_FR > 0) {
-                // Pass control to forces_fr function
-                forces_fr (f, ef, ef, efFE_ref, efFE, efFE, yldflag, d, emod, gmod,
-                           carea, offset, osflag, llength, defllen, istrong, iweak, ipolar,
-                           iwarp, yield, zstrong, zweak, c1, c2, c3, c1, c2, c3, mendrel, mcode,
-                           &dlpf, &itecnt);
-            }
-            
-            if (NE_SH > 0) {
-                // Pass control to forces_sh function
-                forces_sh (f, ef, ef, efN, efM, d, d, chi, x, x, emod, nu, xlocal, thick,
-                           farea, deffarea, slength, defslen, yield, c1, c2, c3, c1, c2, c3,
-                           minc, mcode, jcode);
-            }
-            
-            // Pass control to output function
-            output (&lpfmax, &itecnt, d, ef, 1);
-            
-            fprintf(OFP[0], "\nSolution successful!!\n");
-            printf("\n ni = , %d, nl = , %d, nd = , %d\n",ni,nl,nd);
-            
-=======
 			}
 			
             
@@ -3159,7 +3092,7 @@ int main (int argc, char **argv)
 			output (&lpfmax, &itecnt, d, ef, 1);
 			
 			fprintf(OFP[0], "\nSolution successful!!\n");
->>>>>>> upstream/master
+            
             
         }else if (ALGFLAG == 5){ // Dynamic analysis: Nonlinear Newmark Integration Method
             
@@ -3200,7 +3133,7 @@ int main (int argc, char **argv)
             
             
             // Pass control to output function
-            output (&lpfmax, &itecnt, d, ef, 0);
+            output (&time, &itecnt, d, ef, 0);
             k = 0;
             
             
@@ -3675,7 +3608,7 @@ int main (int argc, char **argv)
                     }
                 }
                 
-                time = k;
+                time = k * dt;
                 
                 //Pass control to output function
                 output (&time, &itecnt, uc, ef, 1);
@@ -3687,8 +3620,6 @@ int main (int argc, char **argv)
             if (convchk == 0) {
                 fprintf(OFP[0], "\nSolution successful!!\n");
             }
-            
-            printf("\n ni = , %d, nl = ,  %d, nd = , %d\n",ni, nl, nd);
             
         }
     }
