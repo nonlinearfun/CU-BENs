@@ -57,7 +57,7 @@
 #include "prototypes.h"
 
 extern long NJ, NE_TR, NE_FR, NE_SH, NEQ;
-extern int ANAFLAG, OPTFLAG;
+extern int ANAFLAG, ALGFLAG, OPTFLAG;
 extern FILE *IFP[2], *OFP[7];
 
 void transform (double *pk, double *pT, double *pK, int n)
@@ -421,8 +421,18 @@ void output (double *plpf, int *pitecnt, double *pd, double *pef, int flag)
 			*pitecnt = 0;
 		}
 
+        // Output iteration completion in terminal window
+        if (ALGFLAG == 4) {
+            printf("Time = %e complete\n", *plpf);
+        }
+        else if (ANAFLAG == 1){
+            printf("Analysis complete\n");
+        }
+        else {
+            printf("LPF = %e complete (%d)\n", *plpf, *pitecnt);
+        }
+        
         // Output displacement response
-        printf("LPF = %e complete (%d)\n", *plpf, *pitecnt);
         fprintf(OFP[1], "\n\t%e\t%d\t", *plpf, *pitecnt);
         for (i = 0; i < NEQ; ++i) {
             fprintf(OFP[1], "\t%e", *(pd+i));
