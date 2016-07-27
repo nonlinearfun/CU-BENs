@@ -336,7 +336,7 @@ int main (int argc, char **argv)
         fprintf(OFP[0], "Analysis Type:\n\t1stOrder Elastic Dynamic\n");
     } else if (ANAFLAG == 2 && ALGFLAG == 5) {
         fprintf(OFP[0], "Analysis Type:\n\t2nd Order Elastic Dynamic\n");
-    }else if (ANAFLAG == 4) {
+    } else if (ANAFLAG == 4 && ALGFLAG != 5) {
         fprintf(OFP[0], "Analysis Type:\n\tFluid Structure Interaction\n");
     } else if (ANAFLAG == 666) {
         fprintf(OFP[0], "***ERROR*** Input file is empty\n");
