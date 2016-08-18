@@ -64,234 +64,234 @@
  CU-BEN Serial Version 3.0 (July 21, 2016)
  
  Analysis Options:
- 1st order elastic, i.e. "linear elastic"
- 2nd order elastic, i.e. "geometrically nonlinear"
- 2nd order inelastic, i.e. "geometrically and materially nonlinear"
- Fluid-structure interaction (FSI)
+    1st order elastic, i.e. "linear elastic"
+    2nd order elastic, i.e. "geometrically nonlinear"
+    2nd order inelastic, i.e. "geometrically and materially nonlinear"
+    Fluid-structure interaction (FSI)
  Nonlinear Solution Algorithm Options:
- (Static) Newton Raphson (NR)
- (Static) Modified Newton Raphson (MNR)
- (Static) Modified Spherical Arc Length (MSAL)
- (Dynamic) Newmark Implicit Integration Method
- (Dynamic) Nonlinear Newmark Implicit Integration Method
+    (Static) Newton Raphson (NR)
+    (Static) Modified Newton Raphson (MNR)
+    (Static) Modified Spherical Arc Length (MSAL)
+    (Dynamic) Newmark Implicit Integration Method
+    (Dynamic) Nonlinear Newmark Implicit Integration Method
  Element Options (Updated Lagrangian):
- 6-dof space trusses
- 14-dof space frames
- 18-dof triangular shells
- 24-dof continuum brick (solid and fluid)
+    6-dof space trusses
+    14-dof space frames
+    18-dof triangular shells
+    24-dof continuum brick (solid and fluid)
  
  Input data:
- enter flag for analysis type (in main) - ANAFLAG
- 1 - 1st order elastic
- 2 - 2nd order elastic
- 3 - 2nd order inelastic
- *** for 1st order elastic analysis, all 2nd order / inelastic analysis related variables must be entered (for consistency in input files), but will be ignored during solution
- 4 - Fluid-structure interaction
- *** for FSI analysis, also enter (on same line), flag for fsi incidence array - FSIINCFLAG
- tracks which elements have FSI nodes, then which face of the element (if the element is a brick) is on the FSI interface, and then the (global) nodes that are on the interface.  This is used later in the assembly if the global A and G matrices that translate the normal pressures into x, y, and z, displacements (i.e. the off-diagonal matrices in the monolithic K and M matrices.)
- 0 - Input fsi incidence array in fsiinc.txt
- 1 - Allow BEN to calculate fsi incidence array
- enter flag for solution algorithm type (in main) - ALGFLAG
- 1 - (Static) Newton Raphson
- 2 - (Static) Modified Newton Raphson
- 3 - (Static) Modified Spherical Arc Length
- 4 - (Dynamic) Newmark Implicit Integration Method
- 5 - (Dynamic) Nonlinear Newmark Implicit Integration Method
- *** for 1st order elastic analysis, ALGFLAG is automatically set to 0
- enter flag for solver algorithm type (in main) - SLVFLAG
- 0 - CU_BEN for symmetric matrices
- 1 - CLAPACK solver for symmetric and non-symmetric matrices
- enter flag for execution of node-renumbering algorithm (in main) - optflag
- 1 - no
- 2 - yes
- enter number of joints (in main) - NJ
- enter number of elements (in main):
- truss - NE_TR
- frame - NE_FR
- shell - NE_SH
- solid brick - NE_SBR
- fluid brick - NE_FBR
- *** enter on single line as: NE_TR, NE_FR, NE_SH, NE_SBR, NE_FBR
- enter truss element member incidences (in struc) - minc[i,1],minc[i,2];
- i = 1 to NE_TR
- enter frame element member incidences (in struc) - minc[i,1],minc[i,2];
- i = 1 to NE_FR
- enter shell element member incidences (in struc) - minc[i,1],minc[i,2],minc[i,3];
- i = 1 to NE_SH
- enter solid brick element member incidences (in struc) - minc[i,1],minc[i,2],minc[i,3],minc[i,4],minc[i,5],minc[i,6],minc[i,7],minc[i,8];
- i = 1 to NE_SBR
- enter fluid brick element member incidences (in struc) - minc[i,1],minc[i,2],minc[i,3],minc[i,4],minc[i,5],minc[i,6],minc[i,7],minc[i,8];
- i = 1 to NE_FBR
- enter joint constraint(s) (in struc) - jnum,jdir; end = 0,0
- *** For acoustic fluid elements, constraint direction 7 corresponds with pressure
- *** for warping DOFs - jnum,jdir,restrnt
- 0 - fixed
- 1 - free
- enter joint coordinates (in prop) - x[i,1],x[i,2],x[i,3]; i = 1 to NJ
- if (NE_TR > 0) {
- enter truss element properties (in prop_tr); i = 1 to NE_TR:
- elastic modulus - emod[i]
- cross-sectional area - carea[i]
- density - dens[i]
- maximum allowable yield stress - yield[i]
- *** enter on single line as: emod[i],carea[i],dens[i],yield[i]
- }
- if (NE_FR > 0) {
- enter frame element material and geometric properties (in prop_fr); i = 1 to NE_FR:
- material properties
- elastic modulus - emod[i]
- shear modulus - gmod[i]
- density - den[i]
- geometric properties:
- cross-sectional area - carea[i]
- moment of inertia, strong-axis - istrong[i]
- moment of inertia, weak-axis - iweak[i]
- moment of inertia, polar - ipolar[i]
- moment of inertia, warping - iwarp[i]
- *** enter on single line as: emod[i],gmod[i],...,ipolar[i],iwarp[i]
- enter frame element member end offsets (in prop_fr) -
- member - osflag[i]
- End-1, Direction 1 - offset[i,1]
- End-1, Direction 2 - offset[i,2]
- End-1, Direction 3 - offset[i,3]
- End-2, Direction 1 - offset[i,4]
- End-2, Direction 2 - offset[i,5]
- End-2, Direction 3 - offset[i,6]
- *** enter on single line as:
- osflag[i], offset[i,1],offset[i,2],offset[i,3],offset[i,4],offset[i,5], offset[i,6]
- end = 0,0,0,0,0,0,0
- enter coordinates of frame element auxiliary point; plane formed by member
- end-points and the auxiliary point orients the strong-axis of the frame
- element (in prop_fr) - auxpt[i,1],auxpt[i,2],auxpt[i,3]; i = 1 to NE_FR
- enter element yield criteria (in prop_fr); i = 1 to NE_FR:
- maximum allowable yield stress - yield[i]
- plastic section modulus, strong-axis - zstrong[i]
- plastic section modulus, weak-axis - zweak[i]
- *** enter on single line as: yield[i],zstrong[i],zweak[i]
- enter frame element member end bending releases (in prop_fr):
- *** this only applies to frame elements for which member ends are released,
- i.e. do not enter frame elements which contain no member end bending releases
- 0 - rigid
- 1 - released
- member - mendrel[i,1]
- End-1, strong-axis - mendrel[i,2]
- End-1, weak-axis - mendrel[i,3]
- End-2, strong-axis - mendrel[i,4]
- End-2, weak-axis - mendrel[i,5]
- *** enter on single line as:
- mendrel[i,1],mendrel[i,2],mendrel[i,3],mendrel[i,4],mendrel[i,5];
- end = 0,0,0,0,0
- }
- if (NE_SH > 0) {
- enter shell element properties (in prop_sh); i = 1 to NE_SH:
- elastic modulus - emod[i]
- Poisson's Ratio - nu[i]
- thickness - thick[i]
- density - dens[i]
- maximum allowable yield stress - yield[i]
- *** enter on single line as: emod[i],nu[i],thick[i],dens[i],yield[i]
- }
- if (NE_SBR > 0) {
- enter brick element properties (in prop_fsi); i = 1 to NE_SBR:
- elastic modulus - emod[i]
- Poisson's Ratio - nu[i]
- density (solid) - dens[i]
- maximum allowable yield stress - yield[i]
- *** enter on single line as: emod[i],nu[i],dens[i],yield[i]
- }
- if (NE_FBR > 0) {
- enter fluid brick element properties (in prop_fsi); ONLY ONCE:
- density (fluid) - fdens
- bulk modulus - bmod
- }
- if (ANAFLAG == 4) { // For FSI analysis
- enter joint absorbtion areas (enter zero if joint is non-absorbing) (in prop_fsi); i = 1 to NJ
- enter joint normal orientation points to orient the direction of the outward facing normal vector of the interface (in prop_fsi); i = 1 to NJ
- *** enter on single line as: norpt[i,1],norpt[i,2],norpt[i,3]
- enter number of time steps (in main) and total time for analysis (s);
- *** enter on single line as: ntstpsinpt, ttot
- enter concentrated load, nodal acceleration(s) and fluid incident pressure(s) applied during time stepon joints for each time step (in load_fsi) - i = 0:ntstpsinpt
- joint,dir,force,fpress,facc;
- end = 0,0,0,0,0
- enter initial conditions for node displacement or pressure and 1st or 2nd derivatives.  If dir = 4, initial condition refers to a fluid DOF (in load_fsi)
- joint,dir,disp,vel,acc;
- end = 0,0,0,0,0
- enter alpha and beta parameters for Newmark time integration scheme
- alpha, delta
- }
- else { // non-FSI analysis
- if (ALGFLAG != 4) { //Static
- enter reference concentrated load(s) on joints (in load) - joint,dir,force;
- end = 0,0,0
- if (NE_FR > 0) {
- enter reference uniformly distributed load(s) on frame elements (in load) -
- frame,dir,force; end = 0,0,0
- }
- }
- else { // Dynamic Analysis
- if (ALGFLAG == 4){
- enter initial number of time steps (in load) and total time for analysis (s);
- *** enter on single line as: ntstpsinpt, ttot
- enter reference concentrated load(s) on joints for each time step (in load); i = 0:ntstpsinpt
- joint,dir,force;
- end = 0,0,0
- enter all non-zero initial conditions for node displacement, velocity, and acceleration (in load)
- joint,dir,disp,vel,acc;
- end = 0,0,0,0,0
- enter alpha and delta parameters for Newmark time integration scheme
- alpha,delta
- }
- if (ALGFLAG == 5){
- enter initial number of time steps (in load) and total time for analysis (s);
- *** enter on single line as: ntstpsinpt, ttot
- enter reference concentrated load(s) on joints for each time step (in load); i = 0:ntstpsinpt
- joint,dir,force;
- end = 0,0,0
- enter all non-zero initial conditions for node displacement, velocity, and acceleration (in load)
- joint,dir,disp,vel,acc;
- end = 0,0,0,0,0
- enter alpha and beta parameters for Newmark time integration scheme
- alpha,delta
- enter maximums / minimums on counters (in main):
- maximum number of iterations within load increment - itemax
- maximum number of times to step back load due to unconverged solution - submax
- minimum number of converged solutions before increasing increment of lambda - solmin
- *** enter on single line as: itemax,submax,solmin
- }
- }
- if (ALGFLAG == 1) {
- enter maximum load proportionality factor (in main) - lpfmax
- }
- else if (ALGFLAG == 2) {
- enter load proportionality factor parameters (in main):
- maximum lambda - lpfmax
- initial lambda - lpf
- increment of lambda - dlpf
- maximum increment of lambda - dlpfmax
- minimum increment of lambda - dlpfmin
- *** enter on single line as: lpfmax,lpf,dlpf,dlpfmax,dlpfmin
- enter maximums / minimums on counters (in main):
- maximum number of iterations within load increment - itemax
- maximum number of times to step back load due to unconverged solution - submax
- minimum number of converged solutions before increasing increment of lambda - solmin
- *** enter on single line as: itemax,submax,solmin
- }
- else { //MSAL
- enter MSAL parameters:
- initial prescribed displacement at DOF "k" (in msal) - jnum,jdir,dk
- factor limiting size of load increment (in main) - alpha
- threshold to eliminate load control in the arc length criterion in the vicinity of a critical point; a minimum value of 0.1 is recommended (in main) - psi_thresh
- optimum number of iterations; a value of 6 is recommended (in main) - iteopt
- maximum lambda and allowable displacment (in main) - lpfmax,dkimax
- enter maximums / minimums on counters (in main):
- maximum number of iterations within load increment - itemax
- maximum number of times to step back load due to unconverged solution - submax
- maximum number of times to step back load due to arc length criterion producing imaginary roots - imagmax
- maximum number of times to step back load due to arc length criterion producing two negative roots - negmax
- *** enter on single line as: itemax,submax,imagmax,negmax
- }
- enter tolerances on out-of-balance displacements, forces, and energy (in main) -
- toldisp,tolforc,tolener
+    enter flag for analysis type (in main) - ANAFLAG
+        1 - 1st order elastic
+        2 - 2nd order elastic
+        3 - 2nd order inelastic
+        *** for 1st order elastic analysis, all 2nd order / inelastic analysis related variables must be entered (for consistency in input files), but will be ignored during solution
+        4 - Fluid-structure interaction
+        *** for FSI analysis, also enter (on same line), flag for fsi incidence array - FSIINCFLAG
+        tracks which elements have FSI nodes, then which face of the element (if the element is a brick) is on the FSI interface, and then the (global) nodes that are on the interface.  This is used later in the assembly if the global A and G matrices that translate the normal pressures into x, y, and z, displacements (i.e. the off-diagonal matrices in the monolithic K and M matrices.)
+            0 - Input fsi incidence array in fsiinc.txt
+            1 - Allow BEN to calculate fsi incidence array
+    enter flag for solution algorithm type (in main) - ALGFLAG
+        1 - (Static) Newton Raphson
+        2 - (Static) Modified Newton Raphson
+        3 - (Static) Modified Spherical Arc Length
+        4 - (Dynamic) Newmark Implicit Integration Method
+        5 - (Dynamic) Nonlinear Newmark Implicit Integration Method
+        *** for 1st order elastic analysis, ALGFLAG is automatically set to 0
+    enter flag for solver algorithm type (in main) - SLVFLAG
+        0 - CU_BEN for symmetric matrices
+        1 - CLAPACK solver for symmetric and non-symmetric matrices
+    enter flag for execution of node-renumbering algorithm (in main) - optflag
+        1 - no
+        2 - yes
+    enter number of joints (in main) - NJ
+    enter number of elements (in main):
+        truss - NE_TR
+        frame - NE_FR
+        shell - NE_SH
+        solid brick - NE_SBR
+        fluid brick - NE_FBR
+        *** enter on single line as: NE_TR, NE_FR, NE_SH, NE_SBR, NE_FBR
+    enter truss element member incidences (in struc) - minc[i,1],minc[i,2];
+        i = 1 to NE_TR
+    enter frame element member incidences (in struc) - minc[i,1],minc[i,2];
+        i = 1 to NE_FR
+    enter shell element member incidences (in struc) - minc[i,1],minc[i,2],minc[i,3];
+        i = 1 to NE_SH
+    enter solid brick element member incidences (in struc) - minc[i,1],minc[i,2],minc[i,3],minc[i,4],minc[i,5],minc[i,6],minc[i,7],minc[i,8];
+        i = 1 to NE_SBR
+    enter fluid brick element member incidences (in struc) - minc[i,1],minc[i,2],minc[i,3],minc[i,4],minc[i,5],minc[i,6],minc[i,7],minc[i,8];
+        i = 1 to NE_FBR
+    enter joint constraint(s) (in struc) - jnum,jdir; end = 0,0
+        *** For acoustic fluid elements, constraint direction 7 corresponds with pressure
+        *** for warping DOFs - jnum,jdir,restrnt
+        0 - fixed
+        1 - free
+    enter joint coordinates (in prop) - x[i,1],x[i,2],x[i,3]; i = 1 to NJ
+    if (NE_TR > 0) {
+        enter truss element properties (in prop_tr); i = 1 to NE_TR:
+            elastic modulus - emod[i]
+            cross-sectional area - carea[i]
+            density - dens[i]
+            maximum allowable yield stress - yield[i]
+            *** enter on single line as: emod[i],carea[i],dens[i],yield[i]
+    }
+    if (NE_FR > 0) {
+        enter frame element material and geometric properties (in prop_fr); i = 1 to NE_FR:
+            material properties
+            elastic modulus - emod[i]
+            shear modulus - gmod[i]
+            density - den[i]
+            geometric properties:
+            cross-sectional area - carea[i]
+            moment of inertia, strong-axis - istrong[i]
+            moment of inertia, weak-axis - iweak[i]
+            moment of inertia, polar - ipolar[i]
+            moment of inertia, warping - iwarp[i]
+            *** enter on single line as: emod[i],gmod[i],...,ipolar[i],iwarp[i]
+        enter frame element member end offsets (in prop_fr) -
+            member - osflag[i]
+            End-1, Direction 1 - offset[i,1]
+            End-1, Direction 2 - offset[i,2]
+            End-1, Direction 3 - offset[i,3]
+            End-2, Direction 1 - offset[i,4]
+            End-2, Direction 2 - offset[i,5]
+            End-2, Direction 3 - offset[i,6]
+            *** enter on single line as:
+                osflag[i], offset[i,1],offset[i,2],offset[i,3],offset[i,4],offset[i,5], offset[i,6]
+                end = 0,0,0,0,0,0,0
+        enter coordinates of frame element auxiliary point; plane formed by member
+            end-points and the auxiliary point orients the strong-axis of the frame
+            element (in prop_fr) - auxpt[i,1],auxpt[i,2],auxpt[i,3]; i = 1 to NE_FR
+        enter element yield criteria (in prop_fr); i = 1 to NE_FR:
+            maximum allowable yield stress - yield[i]
+            plastic section modulus, strong-axis - zstrong[i]
+            plastic section modulus, weak-axis - zweak[i]
+            *** enter on single line as: yield[i],zstrong[i],zweak[i]
+        enter frame element member end bending releases (in prop_fr):
+            *** this only applies to frame elements for which member ends are released,
+                i.e. do not enter frame elements which contain no member end bending releases
+                0 - rigid
+                1 - released
+            member - mendrel[i,1]
+            End-1, strong-axis - mendrel[i,2]
+            End-1, weak-axis - mendrel[i,3]
+            End-2, strong-axis - mendrel[i,4]
+            End-2, weak-axis - mendrel[i,5]
+            *** enter on single line as:
+                mendrel[i,1],mendrel[i,2],mendrel[i,3],mendrel[i,4],mendrel[i,5];
+                end = 0,0,0,0,0
+    }
+    if (NE_SH > 0) {
+        enter shell element properties (in prop_sh); i = 1 to NE_SH:
+            elastic modulus - emod[i]
+            Poisson's Ratio - nu[i]
+            thickness - thick[i]
+            density - dens[i]
+            maximum allowable yield stress - yield[i]
+            *** enter on single line as: emod[i],nu[i],thick[i],dens[i],yield[i]
+    }
+    if (NE_SBR > 0) {
+        enter brick element properties (in prop_fsi); i = 1 to NE_SBR:
+            elastic modulus - emod[i]
+            Poisson's Ratio - nu[i]
+            density (solid) - dens[i]
+            maximum allowable yield stress - yield[i]
+            *** enter on single line as: emod[i],nu[i],dens[i],yield[i]
+    }
+    if (NE_FBR > 0) {
+        enter fluid brick element properties (in prop_fsi); ONLY ONCE:
+            density (fluid) - fdens
+            bulk modulus - bmod
+    }
+    if (ANAFLAG == 4) { // For FSI analysis
+        enter joint absorbtion areas (enter zero if joint is non-absorbing) (in prop_fsi); i = 1 to NJ
+        enter joint normal orientation points to orient the direction of the outward facing normal vector of the interface (in prop_fsi); i = 1 to NJ
+            *** enter on single line as: norpt[i,1],norpt[i,2],norpt[i,3]
+        enter number of time steps (in main) and total time for analysis (s);
+            *** enter on single line as: ntstpsinpt, ttot
+        enter concentrated load, nodal acceleration(s) and fluid incident pressure(s) applied during time stepon joints for each time step (in load_fsi) - i = 0:ntstpsinpt
+            joint,dir,force,fpress,facc;
+            end = 0,0,0,0,0
+        enter initial conditions for node displacement or pressure and 1st or 2nd derivatives.  If dir = 4, initial condition refers to a fluid DOF (in load_fsi)
+            joint,dir,disp,vel,acc;
+            end = 0,0,0,0,0
+        enter alpha and beta parameters for Newmark time integration scheme
+            alpha, delta
+    }
+    else { // non-FSI analysis
+        if (ALGFLAG != 4) { //Static
+            enter reference concentrated load(s) on joints (in load) - joint,dir,force;
+            end = 0,0,0
+            if (NE_FR > 0) {
+                enter reference uniformly distributed load(s) on frame elements (in load) -
+                    frame,dir,force; end = 0,0,0
+            }
+        }
+        else { // Dynamic Analysis
+            if (ALGFLAG == 4){
+                enter initial number of time steps (in load) and total time for analysis (s);
+                    *** enter on single line as: ntstpsinpt, ttot
+                enter reference concentrated load(s) on joints for each time step (in load); i = 0:ntstpsinpt
+                    joint,dir,force;
+                    end = 0,0,0
+                enter all non-zero initial conditions for node displacement, velocity, and acceleration (in load)
+                    joint,dir,disp,vel,acc;
+                    end = 0,0,0,0,0
+                enter alpha and delta parameters for Newmark time integration scheme
+                    alpha,delta
+            }
+            else if (ALGFLAG == 5){
+                 enter initial number of time steps (in load) and total time for analysis (s);
+                    *** enter on single line as: ntstpsinpt, ttot
+                enter reference concentrated load(s) on joints for each time step (in load); i = 0:ntstpsinpt
+                    joint,dir,force;
+                    end = 0,0,0
+                enter all non-zero initial conditions for node displacement, velocity, and acceleration (in load)
+                    joint,dir,disp,vel,acc;
+                    end = 0,0,0,0,0
+                enter alpha and delta parameters for Newmark time integration scheme
+                    alpha,delta
+                enter maximums / minimums on counters (in main):
+                    maximum number of iterations within load increment - itemax
+                    maximum number of times to step back load due to unconverged solution - submax
+                    minimum number of converged solutions before increasing increment of lambda - solmin
+                    *** enter on single line as: itemax,submax,solmin
+            }
+        }
+        if (ALGFLAG == 1) {
+            enter maximum load proportionality factor (in main) - lpfmax
+        }
+        else if (ALGFLAG == 2) {
+            enter load proportionality factor parameters (in main):
+                maximum lambda - lpfmax
+                initial lambda - lpf
+                increment of lambda - dlpf
+                maximum increment of lambda - dlpfmax
+                minimum increment of lambda - dlpfmin
+                *** enter on single line as: lpfmax,lpf,dlpf,dlpfmax,dlpfmin
+            enter maximums / minimums on counters (in main):
+                maximum number of iterations within load increment - itemax
+                maximum number of times to step back load due to unconverged solution - submax
+                minimum number of converged solutions before increasing increment of lambda - solmin
+                *** enter on single line as: itemax,submax,solmin
+        }
+        else { //MSAL
+            enter MSAL parameters:
+                initial prescribed displacement at DOF "k" (in msal) - jnum,jdir,dk
+                factor limiting size of load increment (in main) - alpha
+                threshold to eliminate load control in the arc length criterion in the vicinity of a critical point; a minimum value of 0.1 is recommended (in main) - psi_thresh
+                optimum number of iterations; a value of 6 is recommended (in main) - iteopt
+                maximum lambda and allowable displacment (in main) - lpfmax,dkimax
+            enter maximums / minimums on counters (in main):
+                maximum number of iterations within load increment - itemax
+                maximum number of times to step back load due to unconverged solution - submax
+                maximum number of times to step back load due to arc length criterion producing imaginary roots - imagmax
+                maximum number of times to step back load due to arc length criterion producing two negative roots - negmax
+                *** enter on single line as: itemax,submax,imagmax,negmax
+        }
+    enter tolerances on out-of-balance displacements, forces, and energy (in main) -
+        toldisp,tolforc,tolener
  */
 
 // Number of joints, number of truss, frame, and shell elements, and number of equations
