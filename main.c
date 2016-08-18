@@ -408,7 +408,7 @@ int main (int argc, char **argv)
     long *p2p2l[7];
     // Counter to track number of arrays of type long for which memory is allocated
     int nl = 0;
-    /* Pointer-to-pointer-to-double array (96 arrays of type double are defined during
+    /* Pointer-to-pointer-to-double array (97 arrays of type double are defined during
      program execution) */
     double *p2p2d[97];
     // Counter to track number of arrays of type double for which memory is allocated
