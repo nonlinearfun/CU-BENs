@@ -313,7 +313,7 @@ int main (int argc, char **argv)
 
     // Open I/O for business!
     do {
-        IFP[0] = fopen("model_def.txt", "r"); // Open input file for reading
+        IFP[0] = fopen("model_def_NNM.txt", "r"); // Open input file for reading
     } while (IFP[0] == 0);
 
     char file[20];
@@ -3267,12 +3267,12 @@ int main (int argc, char **argv)
             //Loop through each time step to update stiffness and mass matrix
             do {
                 
-                //Computer temporary time increment interval
+                //Initialize temporary time increment interval variables
                 dt_temp = ddt * dt;
                 ddt_temp = ddt;
                 ddtflag = 0;
 
-                do {//time stepping
+                do {
                     a0 = 1/(alpha*pow(dt_temp,2));
                     a1 = delta/(alpha*dt_temp);
                     a2 = 1/(alpha*dt_temp);
@@ -3329,6 +3329,7 @@ int main (int argc, char **argv)
                         // Frame
                         for (i = 0; i < NE_FR; ++i) {
                             defllen_i[NE_TR+i] = defllen_ip[NE_TR+i] = defllen[NE_TR+i];
+                            llength[NE_TR+i] = llength_temp[NE_TR+i];
                             for (j = 0; j < 6; ++j) {
                                 xfr_temp[i*6+j] = xfr[i*6+j];
                             }
@@ -3349,10 +3350,6 @@ int main (int argc, char **argv)
                             }
                         }
 
-                        for (i = 0; i < NE_FR; ++i) {
-                            llength[NE_TR+i] = llength_temp[NE_TR+i];
-                        }
-
                         // Re-initialize iteration counter at the start of each increment
                         itecnt = 0;
 
@@ -3362,7 +3359,6 @@ int main (int argc, char **argv)
                         frcchk_fr = frcchk_sh = 0;
 
                         do {
-
                             if (itecnt == 0) {
                                 for (i = 0; i < NEQ; ++i) {
                                     /* Compute generalized total external load vector, accounting for
@@ -3371,7 +3367,6 @@ int main (int argc, char **argv)
                                     // Compute residual force vector
                                     r[i] = qtot[i] - f_temp[i];
                                 }
-
                             } else {
                                 // Compute residual force vector
                                 for (i = 0; i < NEQ; ++i) {
@@ -3472,10 +3467,7 @@ int main (int argc, char **argv)
                             updatc (x_temp, x_ip, xfr_temp, dd, defllen_i, deffarea_i, defslen_i,
                                     offset, osflag, auxpt, c1_i, c2_i, c3_i, minc, jcode);
 
-
-                            //printf ("\nEnter force function\n");
                             if (NE_TR > 0) {
-
                                 // Pass control to forces_tr function
                                 forces_tr (f_temp, ef_i, d, emod, carea, llength_temp, defllen_i,
                                            yield, c1_i, c2_i, c3_i, mcode);
@@ -3571,12 +3563,10 @@ int main (int argc, char **argv)
 
                                 break;
                             }
-
                             if (frcchk_fr != 1) {
                                 // Decrease increment of load proportionality factor
                                 dlpf = dlpfp / 2;
                             }
-
                             if (dlpf < dlpfmin) {
                                 dlpf = dlpfmin;
                             }
@@ -3605,7 +3595,6 @@ int main (int argc, char **argv)
 
                             lpf += dlpf; // Increment load proportionality factor
                         }
-
                     } while (lpf <= lpfmax);
 
                     if (convchk != 0) {
@@ -3644,16 +3633,7 @@ int main (int argc, char **argv)
                         // General
                         for (i = 0; i < NE_TR*2+NE_FR*14+NE_SH*18; ++i) {
                             ef[i] = ef_i[i];
-
                         }
-                        // Frame
-                        for (i = 0; i < NE_FR; ++i) {
-                            for (j = 0; j < 14; ++j) {
-                                efFE[i*14+j] = efFE_i[i*14+j];
-                            }
-                        }
-
-                        // General
                         for (i = 0; i < NJ*3; ++i) {
                             x[i] = x_temp[i];
                         }
@@ -3672,6 +3652,9 @@ int main (int argc, char **argv)
                         for (i = 0; i < NE_FR; ++i) {
                             defllen[NE_TR+i] = defllen_i[NE_TR+i];
                             llength[NE_TR+i] = llength_temp[NE_TR+i];
+                            for (j = 0; j < 14; ++j) {
+                                efFE[i*14+j] = efFE_i[i*14+j];
+                            }
                             for (j = 0; j < 6; ++j) {
                                 xfr[i*6+j] = xfr_temp[i*6+j];
                             }
