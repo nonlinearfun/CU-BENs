@@ -58,7 +58,7 @@
 #include "prototypes.h"
 
 // CLAPACK header files
-//#include <Accelerate/Accelerate.h>
+#include <Accelerate/Accelerate.h>
 
 extern long NJ, SNDOF, FNDOF, NEQ, NTSTPS, NE_SBR, NE_FBR;
 extern double dt, ttot;
@@ -101,7 +101,7 @@ int solve (long *pjcode, double *pss, double *pss_fsi, double *psm, double *psm_
         else if (SLVFLAG == 1) {
 
             // Call LAPACK routine for solving general matrices
-           // dgesv_(&n, &nrhs, pss, &lda, pipiv, pr, &ldb, &info);
+             dgesv_(&n, &nrhs, pss, &lda, pipiv, pr, &ldb, &info);
 
             // Set displacements from CLAPACK to dd array
             for (i = 0; i < NEQ; ++i) {
@@ -136,7 +136,6 @@ int solve (long *pjcode, double *pss, double *pss_fsi, double *psm, double *psm_
         }
 
         // Calculate integration constants
-
         a0 = 1/(alpha*pow(dt*ddt,2));
         a1 = delta/(alpha*dt*ddt);
         a2 = 1/(alpha*dt*ddt);
@@ -183,7 +182,7 @@ int solve (long *pjcode, double *pss, double *pss_fsi, double *psm, double *psm_
             skyfact(pmaxa, pKeff, pssd, pdd, fact, pdet);
         }
         else if (SLVFLAG == 1) {
-        //    dgetrf_(&m, &n, pKeff, &lda, pipiv, &info);
+            dgetrf_(&m, &n, pKeff, &lda, pipiv, &info);
         }
 
         if (ALGFLAG == 4){ // Dynamic: linear Newmark Intergration Method
@@ -252,7 +251,7 @@ int solve (long *pjcode, double *pss, double *pss_fsi, double *psm, double *psm_
                     err = skysolve (pmaxa, pKeff, pssd, pReff, fact, pdet);
                 }
                 else if (SLVFLAG == 1) {
-                 //   dgetrs_(&trans, &n, &nrhs, pKeff, &lda, pipiv, pReff, &ldb, &info);
+                    dgetrs_(&trans, &n, &nrhs, pKeff, &lda, pipiv, pReff, &ldb, &info);
                 }
 
                 if (SLVFLAG == 0 || SLVFLAG == 1) {
@@ -304,18 +303,13 @@ int solve (long *pjcode, double *pss, double *pss_fsi, double *psm, double *psm_
                 }
             }
 
-
-           // printf ("\n\n In solve\n");
-           // printf("*pReff: %lf", *(pReff+135));
-
             /*Compute displacement*/
             // Solve for displacements at each iteration
-
             if (SLVFLAG == 0) {
                 err = skysolve (pmaxa, pKeff, pssd, pReff, fact, pdet);
             }
             else if (SLVFLAG == 1) {
-            //    dgetrs_(&trans, &n, &nrhs, pKeff, &lda, pipiv, pReff, &ldb, &info);
+                dgetrs_(&trans, &n, &nrhs, pKeff, &lda, pipiv, pReff, &ldb, &info);
             }
 
             //Pass displacement to main for Newton-Raphson iteration
@@ -343,7 +337,6 @@ int skyfact (long *pmaxa, double *pss_temp, double *pssd, double *pdd, int fact,
     if (fact == 0) {
         for (n = 1; n <= NEQ; ++n) {
             kn = *(pmaxa+n-1);
-            //    printf("n = %ld\t",n);
             kl = kn + 1;
             ku = *(pmaxa+n) - 1;
             kh = ku - kl;
