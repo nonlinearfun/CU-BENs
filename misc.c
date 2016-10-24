@@ -423,7 +423,7 @@ void output (double *plpf, int *pitecnt, double *pd, double *pef, int flag)
 		}
 
         // Output iteration completion in terminal window
-        if (ALGFLAG == 4) {
+        if (ALGFLAG == 4 || ALGFLAG == 5) {
             printf("Time = %e complete\n", *plpf);
         }
         else if (ANAFLAG == 1){

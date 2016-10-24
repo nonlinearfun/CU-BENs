@@ -58,7 +58,7 @@
 #include "prototypes.h"
 
 // CLAPACK header files
-#include <Accelerate/Accelerate.h>
+//#include <Accelerate/Accelerate.h>
 
 extern long NJ, SNDOF, FNDOF, NEQ, NTSTPS, NE_SBR, NE_FBR;
 extern double dt, ttot;
@@ -68,59 +68,59 @@ extern FILE *IFP[2], *OFP[7];
 
 int solve (long *pjcode, double *pss, double *pss_fsi, double *psm, double *psm_fsi, double *psd_fsi, double *pr, double *pdd, long *pmaxa, double *pssd, int *pdet,
            double *pum, double *pvm, double *pam, double *puc, double *pvc, double *pac, double *pqdyn, double *ptstps,
-           double *pKeff, double *pReff, double *pMeff, double alpha, double delta, int *pipiv, int fact)
+           double *pKeff, double *pReff, double *pMeff, double alpha, double delta, int *pipiv, int fact, double ddt)
 {
-    
+
     // Initialize function variables
     long i, j, k;
     int err, dum = 0;
     char trans = 'N';
     double time, sum = 0;
     double a0, a1, a2, a3, a4, a5, a6, a7;
-    
+
     // Initialize CLAPACK variables
     int n, lda, ldb, info, nrhs = 1;
-    
+
     n = lda = ldb = NEQ;
-    
+
     // Pass residual array to the incremental displacements array
     for (i = 0; i < NEQ; ++i) {
         *(pdd+i) = *(pr+i);
     }
-    
+
     // Static analysis
     if (ALGFLAG < 4) {
-        
+
         // Skyline solver for structural elements
         if (SLVFLAG == 0) {
             skyfact(pmaxa, pss, pssd, pdd, fact, pdet);
             err = skysolve (pmaxa, pss, pssd, pdd, fact, pdet);
         }
-        
+
         // CLAPACK direct solver
         else if (SLVFLAG == 1) {
-            
+
             // Call LAPACK routine for solving general matrices
-            dgesv_(&n, &nrhs, pss, &lda, pipiv, pr, &ldb, &info);
-            
+           // dgesv_(&n, &nrhs, pss, &lda, pipiv, pr, &ldb, &info);
+
             // Set displacements from CLAPACK to dd array
             for (i = 0; i < NEQ; ++i) {
                 *(pdd+i) = *(pr+i);
             }
-            
+
             // Pass control to output function
             output (pr, &dum, pdd, puc, 1);
         }
     }
-    
+
     // Dynamic analysis
     else if (ALGFLAG > 3) {
-        
+
         // Initialize function variables
         int m, n, lda, ldb, info, nrhs = 1;
         m = n = lda = ldb = NEQ;
         char trans = 'N';
-        
+
         // Initialize effective stiffness matrix to zero
         if (SLVFLAG == 1) {
             for (i = 0; i < NEQ; ++i) {
@@ -134,17 +134,18 @@ int solve (long *pjcode, double *pss, double *pss_fsi, double *psm, double *psm_
                 *(pKeff+i) = 0;
             }
         }
-        
+
         // Calculate integration constants
-        a0 = 1/(alpha*pow(dt,2));
-        a1 = delta/(alpha*dt);
-        a2 = 1/(alpha*dt);
+
+        a0 = 1/(alpha*pow(dt*ddt,2));
+        a1 = delta/(alpha*dt*ddt);
+        a2 = 1/(alpha*dt*ddt);
         a3 = 1/(2*alpha) - 1;
         a4 = delta/alpha - 1;
         a5 = dt/2*(delta/alpha - 2);
         a6 = dt*(1-delta);
         a7 = delta*dt;
-        
+
         /* Calculate effective stiffness matrix */
         if (ANAFLAG == 4) { // FSI analysis, cannot use skyline
             for (i = 0; i < NEQ; ++i) {
@@ -176,30 +177,30 @@ int solve (long *pjcode, double *pss, double *pss_fsi, double *psm, double *psm_
                 }
             }
         }
-        
+
         // Factorize Keff
         if (SLVFLAG == 0) {
             skyfact(pmaxa, pKeff, pssd, pdd, fact, pdet);
         }
         else if (SLVFLAG == 1) {
-            dgetrf_(&m, &n, pKeff, &lda, pipiv, &info);
+        //    dgetrf_(&m, &n, pKeff, &lda, pipiv, &info);
         }
-        
+
         if (ALGFLAG == 4){ // Dynamic: linear Newmark Intergration Method
-            
+
             // Initialize current u, v, and a
             for (i = 0; i < NEQ; ++i) {
                 *(puc+i) = *(pvc+i) = *(pac+i) = 0;
             }
-            
+
             // Loop through each time step to solve for displacements
             for (k = 0; k < NTSTPS; ++k) {
-                
+
                 // Initialize Meff and Reff for new time step to zero
                 for (i = 0; i < NEQ; ++i) {
                     *(pMeff+i) = 0;	*(pReff+i) = 0;
                 }
-                
+
                 // Calculate effective mass matrix
                 if (ANAFLAG == 4) { // FSI analysis, cannot use skyline
                     for (i = 0; i < NEQ; ++i) {
@@ -226,52 +227,52 @@ int solve (long *pjcode, double *pss, double *pss_fsi, double *psm, double *psm_
                         }
                     }
                 }
-                
+
                 // Calculate effective load vector
                 for (i = 0; i < NEQ; ++i) {
                     *(pReff+i) = *(pqdyn+i*NTSTPS+k) + *(pMeff+i);
                 }
-                
+
                 // Calculate effective damping vector (re-use Meff)
                 if (ANAFLAG == 4) {
                     for (i = 0; i < NEQ; ++i) {
                         *(pMeff+i) = *(psd_fsi+i) * (*(pum+i)*a1 + *(pvm+i)*a4 + *(pam+i)*a5);
                     }
                 }
-                
+
                 // Add effective damping vector to effective load vector
                 if (ANAFLAG == 4) {
                     for (i = 0; i < NEQ; ++i) {
                         *(pReff+i) += *(pMeff+i);
                     }
                 }
-                
+
                 // Solve for displacements at current time step
                 if (SLVFLAG == 0) {
                     err = skysolve (pmaxa, pKeff, pssd, pReff, fact, pdet);
                 }
                 else if (SLVFLAG == 1) {
-                    dgetrs_(&trans, &n, &nrhs, pKeff, &lda, pipiv, pReff, &ldb, &info);
+                 //   dgetrs_(&trans, &n, &nrhs, pKeff, &lda, pipiv, pReff, &ldb, &info);
                 }
-                
+
                 if (SLVFLAG == 0 || SLVFLAG == 1) {
                     for (i = 0; i < NEQ; ++i) {
                         *(puc+i) = *(pReff+i);
                     }
                 }
-                
+
                 // Calculate current velocities and accelerations
                 for (i = 0; i < NEQ; ++i) {
                     *(pac+i) = a0*(*(puc+i) - *(pum+i)) - a2*(*(pvm+i)) - a3*(*(pam+i));
                     *(pvc+i) = *(pvm+i) + a6*(*(pam+i)) + a7*(*(pac+i));
                 }
-                
-                
-                
+
+
+
                 time = k*dt;
                 // Pass control to output function
                 output (&time, &dum, puc, puc, 1);
-                
+
                 // Assign current u, v, a to be the previous values
                 for (i = 0; i < NEQ; ++i) {
                     *(pum+i) = *(puc+i);
@@ -280,42 +281,45 @@ int solve (long *pjcode, double *pss, double *pss_fsi, double *psm, double *psm_
                 }
             }
         } else if (ALGFLAG == 5){ //Dynamic: nonlinear Newmark Intergration Method
-            
-            
+
+
             // Initialize Reff for new time step to zero
             for (i = 0; i < NEQ; ++i) {
                 *(pReff+i) = 0;
             }
-            
+
             //Compute the equivalent change of dynamic external force vector
-            
+
             if (ANAFLAG != 4) { // Non-FSI analysis
                 if (SLVFLAG == 0) { // using skyline funciton
                     for (i = 0; i < NEQ; ++i){
-                        *(pReff+i) = *(pr+i) + (a2 * (*(pvm+i))+ (*(pam+i))) * (*(psm+i));
+                        *(pReff+i) = *(pr+i) + (a2 * (*(pvm+i)) + (*(pam+i))) * (*(psm+i));
                     }
                 }
             }else if (SLVFLAG == 1) { //using CLAPACK solver
                 for (i = 0; i<NEQ; ++i){
                     for(j = 0; j<NEQ; ++j){
-                        *(pReff+i) = *(pr+i) + (a2 * (*(pvm+i))+ (*(pam+i)))* (*(psm+i*NEQ+j));
+                        *(pReff+i) = *(pr+i) + (a2 * (*(pvm+i)) + (*(pam+i)))* (*(psm+i*NEQ+j));
                     }
                 }
             }
-            
-            
+
+
+           // printf ("\n\n In solve\n");
+           // printf("*pReff: %lf", *(pReff+135));
+
             /*Compute displacement*/
             // Solve for displacements at each iteration
-            
+
             if (SLVFLAG == 0) {
                 err = skysolve (pmaxa, pKeff, pssd, pReff, fact, pdet);
             }
             else if (SLVFLAG == 1) {
-                dgetrs_(&trans, &n, &nrhs, pKeff, &lda, pipiv, pReff, &ldb, &info);
+            //    dgetrs_(&trans, &n, &nrhs, pKeff, &lda, pipiv, pReff, &ldb, &info);
             }
-            
+
             //Pass displacement to main for Newton-Raphson iteration
-            
+
             for (i = 0; i < NEQ; ++i) {
                 *(pdd+i) = *(pReff+i);
             }
@@ -327,11 +331,11 @@ int solve (long *pjcode, double *pss, double *pss_fsi, double *psm, double *psm_
 
 int skyfact (long *pmaxa, double *pss_temp, double *pssd, double *pdd, int fact, int *pdet)
 {
-    
+
     // Initialize function variables
     long i, n, kn, kl, ku, kh, k, ic, klt, j, ki, nd, kk, l;
     double b, c;
-    
+
     /* Initialize determinant sign flag to zero; zero indicates a positive definite
      stiffness matrix */
     *pdet = 0;
@@ -343,13 +347,13 @@ int skyfact (long *pmaxa, double *pss_temp, double *pssd, double *pdd, int fact,
             kl = kn + 1;
             ku = *(pmaxa+n) - 1;
             kh = ku - kl;
-            
+
             if (kh < 0) {
                 if (ALGFLAG != 3 && *(pss_temp+kn-1) <= 0) {
                     fprintf(OFP[0], "\n***ERROR*** Non-positive definite stiffness");
                     fprintf(OFP[0], " matrix\n");
                     return 1;
-                    
+
                 } else if (ALGFLAG == 3) {
                     *(pssd+n-1) = *(pss_temp+kn-1);
                     if (*(pss_temp+kn-1) == 0) {
@@ -369,7 +373,7 @@ int skyfact (long *pmaxa, double *pss_temp, double *pssd, double *pdd, int fact,
                     ic++;
                     klt--;
                     ki = *(pmaxa+k-1);
-                    
+
                     nd = *(pmaxa+k) - ki - 1;
                     if (nd > 0) {
                         if (nd < ic) {
@@ -444,11 +448,11 @@ int skyfact (long *pmaxa, double *pss_temp, double *pssd, double *pdd, int fact,
 
 int skysolve (long *pmaxa, double *pss_temp, double *pssd, double *pdd, int fact, int *pdet)
 {
-    
+
     // Initialize function variables
     long i, n, kl, ku, kh, k, kk;
     double c;
-    
+
     // Reduce right-hand-side load vector
     for (n = 1; n <= NEQ; ++n) {
         kl = *(pmaxa+n-1) + 1;
@@ -464,7 +468,7 @@ int skysolve (long *pmaxa, double *pss_temp, double *pssd, double *pdd, int fact
             *(pdd+n-1) -= c;
         }
     }
-    
+
     // Back-substitute
     for (n = 0; n < NEQ; ++n) {
         k = *(pmaxa+n);
