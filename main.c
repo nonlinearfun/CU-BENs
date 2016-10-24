@@ -1756,8 +1756,6 @@ int main (int argc, char **argv)
                         }
                     }
 
-                    printf ("\nlpf: %f \n", lpf);
-
                     // Re-initialize iteration counter at the start of each increment
                     itecnt = 0;
 
@@ -1766,14 +1764,10 @@ int main (int argc, char **argv)
                      user specified maximum */
                     frcchk_fr = frcchk_sh = 0;
                     do {
-
-                        printf ("\n******Iteration******\n");
                         // Compute residual force vector
                         for (i = 0; i < NEQ; ++i) {
                             r[i] = qtot[i] - f_temp[i];
                         }
-
-                        printf ("\nEnter stiff matrix\n");
 
                         if (ALGFLAG == 1 || (ALGFLAG == 2 && itecnt == 0)) {
                             // Initialize tangent stiffness matrix to zero
@@ -1802,7 +1796,6 @@ int main (int argc, char **argv)
                             }
                         }
 
-                        printf ("\nLeave stiff matrix\n");
                         // Solve the system for incremental displacements
                         if (lss == 1) {
                             /* Carry out computation of incremental displacement directly for
@@ -1837,7 +1830,6 @@ int main (int argc, char **argv)
                         updatc (x_temp, x_ip, xfr_temp, dd, defllen_i, deffarea_i, defslen_i,
                                 offset, osflag, auxpt, c1_i, c2_i, c3_i, minc, jcode);
 
-                        printf ("\nEnter force function\n");
                         if (NE_TR > 0) {
                             // Pass control to forces_tr function
                             forces_tr (f_temp, ef_i, d, emod, carea, llength, defllen_i,
@@ -1860,10 +1852,6 @@ int main (int argc, char **argv)
                                                    farea, deffarea_ip, slength, defslen_ip, yield, c1_ip, c2_ip,
                                                    c3_ip, c1_i, c2_i, c3_i, minc, mcode, jcode);
                         }
-
-                        printf ("\nLeave force function\n");
-
-                        printf ("\nfrcchk: %d\n", frcchk_fr);
 
                         // Update element internal forces from previous iteration
                         for (i = 0; i < NE_TR*2+NE_FR*14+NE_SH*18; ++i) {
@@ -1945,8 +1933,6 @@ int main (int argc, char **argv)
 
                         // Step back load proportionality factor
                         lpf = lpf - dlpfp + dlpf;
-
-                        printf ("\n dlpfp: %f, dlpf: %lf\n", dlpfp, dlpf);
 
                         subcnt++; // Advance subdivision counter
                         solcnt = 0; // Re-initialize converged solution counter
@@ -2039,8 +2025,6 @@ int main (int argc, char **argv)
                         lpf += dlpf; // Increment load proportionality factor
                     }
                 } while (lpf <= lpfmax);
-
-                printf ("\ndisplacement: %lf \n", d[135]);
 
                 if (lpf >= lpfmax && convchk == 0) {
                     fprintf(OFP[0], "\nSolution successful\n");
