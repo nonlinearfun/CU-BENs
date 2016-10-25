@@ -418,9 +418,9 @@ int main (int argc, char **argv)
     long *p2p2l[7];
     // Counter to track number of arrays of type long for which memory is allocated
     int nl = 0;
-    /* Pointer-to-pointer-to-double array (104 arrays of type double are defined during
+    /* Pointer-to-pointer-to-double array (101 arrays of type double are defined during
      program execution) */
-    double *p2p2d[104];
+    double *p2p2d[101];
     // Counter to track number of arrays of type double for which memory is allocated
     int nd = 0;
 
@@ -1180,27 +1180,6 @@ int main (int argc, char **argv)
         goto EXIT2;
     }
     p2p2d[nd] = ac;
-    nd++;
-    // Array of temporary displacements
-    double *uc_temp = alloc_dbl (NEQ);
-    if (uc_temp == NULL) {
-        goto EXIT2;
-    }
-    p2p2d[nd] = uc_temp;
-    nd++;
-    // Array of temporary velocities
-    double *vc_temp = alloc_dbl (NEQ);
-    if (vc_temp == NULL) {
-        goto EXIT2;
-    }
-    p2p2d[nd] = vc_temp;
-    nd++;
-    // Array of temporary accelerations
-    double *ac_temp = alloc_dbl (NEQ);
-    if (ac_temp == NULL) {
-        goto EXIT2;
-    }
-    p2p2d[nd] = ac_temp;
     nd++;
     // Array of displacements at current iteration
     double *uc_i = alloc_dbl (NEQ);
