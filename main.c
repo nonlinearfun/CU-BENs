@@ -1202,26 +1202,26 @@ int main (int argc, char **argv)
     }
     p2p2d[nd] = ac_temp;
     nd++;
-    // Array of displacements from the previous iteration
-    double *uc_ip = alloc_dbl (NEQ);
-    if (uc_ip == NULL) {
+    // Array of displacements at current iteration
+    double *uc_i = alloc_dbl (NEQ);
+    if (uc_i == NULL) {
         goto EXIT2;
     }
-    p2p2d[nd] = uc_ip;
+    p2p2d[nd] = uc_i;
     nd++;
-    // Array of velocities from the previous iteration
-    double *vc_ip = alloc_dbl (NEQ);
-    if (vc_ip == NULL) {
+    // Array of velocities at current iteration
+    double *vc_i = alloc_dbl (NEQ);
+    if (vc_i == NULL) {
         goto EXIT2;
     }
-    p2p2d[nd] = vc_ip;
+    p2p2d[nd] = vc_i;
     nd++;
-    // Array of accelerations from the previous iteration
-    double *ac_ip = alloc_dbl (NEQ);
-    if (ac_ip == NULL) {
+    // Array of accelerations at current iteration
+    double *ac_i = alloc_dbl (NEQ);
+    if (ac_i == NULL) {
         goto EXIT2;
     }
-    p2p2d[nd] = ac_ip;
+    p2p2d[nd] = ac_i;
     nd++;
     // L matrix
     double *L = alloc_dbl (SNDOF*FNDOF); // L matrix = G*A
@@ -3162,7 +3162,7 @@ int main (int argc, char **argv)
             //Define secondary non-array variables, specific to NR algorithm
             double lpfi, lpfp, dlpfi; // Variables for NR iteration
             double ssd; // Dummy variable for solve function
-            double time, ddt, dt_temp, ddtflag, ddt_temp; // Variables for time stepping scheme
+            double time, ddt, dt_temp, sub_dt, tsflag; // Variables for time stepping scheme
             double  a0, a1, a2, a3; // Variables for Newmark constants
 
             int inccnt; //Load increment counter
@@ -3194,9 +3194,9 @@ int main (int argc, char **argv)
             NTSTPS = ttot/dt + 1;
 
             // Initialize time stepping variables
-            ddt = ddt_temp = 1;
+            ddt = sub_dt = 1;
             dt_temp = dt;
-            ddtflag = 0;
+            tsflag = 0;
             
             lpfp = lpfi = lpf;
             dlpfi = dlpf;
@@ -3253,8 +3253,8 @@ int main (int argc, char **argv)
                 
                 //Initialize temporary time increment interval variables
                 dt_temp = ddt * dt;
-                ddt_temp = ddt;
-                ddtflag = 0;
+                sub_dt = ddt;
+                tsflag = 0;
 
                 do {
                     a0 = 1/(alpha*pow(dt_temp,2));
@@ -3301,9 +3301,9 @@ int main (int argc, char **argv)
                         }
 
                         for (i = 0; i < NEQ; ++i){
-                            um[i] = uc_ip[i] = uc[i];
-                            vm[i] = vc_ip[i] = vc[i];
-                            am[i] = ac_ip[i] = ac[i];
+                            um[i] = uc_i[i] = uc[i];
+                            vm[i] = vc_i[i] = vc[i];
+                            am[i] = ac_i[i] = ac[i];
                         }
 
                         // Truss
@@ -3347,7 +3347,7 @@ int main (int argc, char **argv)
                                 for (i = 0; i < NEQ; ++i) {
                                     /* Compute generalized total external load vector, accounting for
                                      generalized fixed-end load vector */
-                                    qtot[i] = (pinpt[i*NTSTPS+k-1] + (pinpt[i*NTSTPS+k]-pinpt[i*NTSTPS+k-1])*(ddt_temp))*lpf;
+                                    qtot[i] = (pinpt[i*NTSTPS+k-1] + (pinpt[i*NTSTPS+k]-pinpt[i*NTSTPS+k-1])*(sub_dt))*lpf;
                                     // Compute residual force vector
                                     r[i] = qtot[i] - f_temp[i];
                                 }
@@ -3395,7 +3395,7 @@ int main (int argc, char **argv)
                                 dd[0] = r[0] / ss[0];
                             } else {
                                 // Pass control to solve function
-                                errchk = solve (jcode, ss, ss, sm, sm, sd_fsi, r, dd, maxa, &ssd, &det, um, vm, am, uc_ip, vc_ip, ac_ip, qtot, tinpt,
+                                errchk = solve (jcode, ss, ss, sm, sm, sd_fsi, r, dd, maxa, &ssd, &det, um, vm, am, uc_i, vc_i, ac_i, qtot, tinpt,
                                                 Keff, Reff, Meff, alpha, delta, ipiv, 0, ddt);
 
                                 // Terminate program if errors encountered
@@ -3419,31 +3419,31 @@ int main (int argc, char **argv)
                             if (itecnt == 0 ) {
                                 // Calculate displacements, velocities and accelerations
                                 for (i = 0; i < NEQ; ++i) {
-                                    uc_ip[i] = d_temp[i];
-                                    vc_ip[i] = (uc_ip[i] - um[i])*a1 - vm[i];
-                                    ac_ip[i] = (vc_ip[i] - vm[i])*a1 - am[i]*a3;
+                                    uc_i[i] = d_temp[i];
+                                    vc_i[i] = (uc_i[i] - um[i])*a1 - vm[i];
+                                    ac_i[i] = (vc_i[i] - vm[i])*a1 - am[i]*a3;
                                 }
 
                                 // Assign current u, v, a to be the previous values
                                 for (i = 0; i < NEQ; ++i) {
-                                    um[i] = uc_ip[i];
-                                    vm[i] = vc_ip[i];
-                                    am[i] = ac_ip[i];
+                                    um[i] = uc_i[i];
+                                    vm[i] = vc_i[i];
+                                    am[i] = ac_i[i];
                                 }
 
                             } else {
                                 // Calculate current velocities and accelerations
                                 for (i = 0; i < NEQ; ++i) {
-                                     uc_ip[i] += dd[i];
-                                     vc_ip[i] += a1 * dd[i];
-                                     ac_ip[i] += a0 * dd[i];
+                                     uc_i[i] += dd[i];
+                                     vc_i[i] += a1 * dd[i];
+                                     ac_i[i] += a0 * dd[i];
                                 }
 
                                 // Assign current u, v, a to be the previous values
                                 for (i = 0; i < NEQ; ++i) {
-                                     um[i] = uc_ip[i];
-                                     vm[i] = vc_ip[i];
-                                     am[i] = ac_ip[i];
+                                     um[i] = uc_i[i];
+                                     vm[i] = vc_i[i];
+                                     am[i] = ac_i[i];
                                 }
                             }
 
@@ -3585,14 +3585,17 @@ int main (int argc, char **argv)
                         if (frcchk_fr != 0 || frcchk_sh != 0 || convchk != 0){
                             fprintf(OFP[0], "\nTime increment interval reduced\n");
                             
-                            // Reduce time increment interval by half if solutions do not converge
+                            // Reduce time increment interval by half if solution does not converge
                             ddt = ddt/2;
+                            // Compute temporary time increment interval
                             dt_temp = ddt * dt;
 
-                            if (ddtflag == 0){
-                                ddt_temp = ddt;
-                            } else if (ddtflag == 1){
-                                ddt_temp = ddt_temp - ddt;
+                            if (tsflag == 0){
+                                // Initialize sub-time increment interval to time increment multiplier if solution exceeded yield surface
+                                sub_dt = ddt;
+                            } else if (tsflag == 1){
+                                // Set sub-time increment interval to its previous value if solution exceeded yield surface after some time increment iterations
+                                sub_dt = sub_dt - ddt;
                             }
 
                         } else {
@@ -3609,9 +3612,9 @@ int main (int argc, char **argv)
                         }
 
                         for (i = 0; i < NEQ; ++i){
-                            uc[i] = uc_ip[i];
-                            vc[i] = vc_ip[i];
-                            ac[i] = ac_ip[i];
+                            uc[i] = uc_i[i];
+                            vc[i] = vc_i[i];
+                            ac[i] = ac_i[i];
                         }
                         
                         // General
@@ -3673,17 +3676,21 @@ int main (int argc, char **argv)
                         }
                     }
                     
-                    // Update time stepping flag
+                    // Update sub-time increment interval and time stepping flag if solution passes force check
                     if (frcchk_fr == 0 && frcchk_sh == 0){
                         if (ddt < 1) {
-                            ddt_temp = ddt_temp + ddt;
-                            ddtflag = 1;
-                        }
-                        if (ddt_temp > 1 || ddt == 1){
-                            ddtflag = 2;
+                            if (sub_dt <= 1) {
+                            sub_dt = sub_dt + ddt;
+                            tsflag = 1;
+                            } else if (sub_dt > 1){
+                                ddt = ddt * 2;
+                                tsflag = 2;
+                            }
+                        } else if (ddt == 1){
+                            tsflag = 2;
                         }
                     }
-                } while (ddt >= 0.0001 && ddt_temp <= 1 && ddtflag != 2);
+                } while (ddt >= 0.0001 && sub_dt <= 1 && tsflag != 2);
 
                 if (convchk != 0 || frcchk_fr != 0 || frcchk_sh != 0) {
 
