@@ -3680,9 +3680,10 @@ int main (int argc, char **argv)
                     if (frcchk_fr == 0 && frcchk_sh == 0){
                         if (ddt < 1) {
                             if (sub_dt <= 1) {
-                            sub_dt = sub_dt + ddt;
-                            tsflag = 1;
-                            } else if (sub_dt > 1){
+                                sub_dt = sub_dt + ddt;
+                                tsflag = 1;
+                            }
+                            if (sub_dt > 1){
                                 ddt = ddt * 2;
                                 tsflag = 2;
                             }
@@ -3690,7 +3691,7 @@ int main (int argc, char **argv)
                             tsflag = 2;
                         }
                     }
-                } while (ddt >= 0.0001 && sub_dt <= 1 && tsflag != 2);
+                } while (ddt >= 0.0001 && tsflag != 2);
 
                 if (convchk != 0 || frcchk_fr != 0 || frcchk_sh != 0) {
 
