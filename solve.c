@@ -1,6 +1,6 @@
 //********************************************************************************
 //**																			**
-//**  Pertains to CU-BEN ver 3.0												**
+//**  Pertains to CU-BEN ver 3.14												**
 //**																			**
 //**  Copyright (c) 2016 C. J. Earls                                            **
 //**  Developed by C. J. Earls, Cornell University                              **
@@ -287,8 +287,7 @@ int solve (long *pjcode, double *pss, double *pss_fsi, double *psm, double *psm_
                 *(pReff+i) = 0;
             }
 
-            //Compute the equivalent change of dynamic external force vector
-
+            //Compute the equivalent change in dynamic external force vector
             if (ANAFLAG != 4) { // Non-FSI analysis
                 if (SLVFLAG == 0) { // using skyline funciton
                     for (i = 0; i < NEQ; ++i){
@@ -313,7 +312,6 @@ int solve (long *pjcode, double *pss, double *pss_fsi, double *psm, double *psm_
             }
 
             //Pass displacement to main for Newton-Raphson iteration
-
             for (i = 0; i < NEQ; ++i) {
                 *(pdd+i) = *(pReff+i);
             }
