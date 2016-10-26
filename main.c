@@ -1,6 +1,6 @@
 //********************************************************************************
 //**																			**
-//**  Pertains to CU-BEN ver 3.0												**
+//**  Pertains to CU-BEN ver 3.14												**
 //**																			**
 //**  Copyright (c) 2016 C. J. Earls                                            **
 //**  Developed by C. J. Earls, Cornell University                              **
@@ -60,7 +60,7 @@
 //#include "f2c.h"
 
 /*
- CU-BEN Serial Version 3.0 (July 21, 2016)
+ CU-BEN Serial Version 3.14 (October 26, 2016)
 
  Analysis Options:
  1st order elastic, i.e. "linear elastic"
@@ -595,8 +595,7 @@ int main (int argc, char **argv)
     p2p2d[nd] = deffarea_ip;
     nd++;
 
-    /* Longitudinal length and deformed longitudinal length (truss and frame elements
-     only) */
+    // Longitudinal length and deformed longitudinal length (truss and frame elements only)
     double *llength = alloc_dbl (NE_TR+NE_FR);
     if (llength == NULL) {
         goto EXIT2;
@@ -2433,8 +2432,8 @@ int main (int argc, char **argv)
             lpfpp = lpfp;
             lpfp = lpf;
 
-            /* Set all temporary variables and variables which refer to the structure in its
-             current configuration to values obtained at last successful load increment;
+            /* Set all temporary variables, and variables which refer to the structure in its
+             current configuration, to values obtained at last successful load increment;
              this step is required so as not to overwrite structure properties prematurely
              if load increment is unsuccessful / invalid */
             // General
@@ -3253,8 +3252,8 @@ int main (int argc, char **argv)
                         if (lpf > lpfmax) {
                             lpf = lpfmax;
                         }
-                        /* Set all temporary variables and variables which refer to the structure
-                         in its current configuration to values obtained at last successful
+                        /* Set all temporary variables, and variables which refer to the structure
+                         in its current configuration, to values obtained at last successful
                          load increment; this step is required so as not to overwrite structure
                          properties prematurely if load increment is unsuccessful / invalid */
                         for (i = 0; i < NEQ; ++i) {
