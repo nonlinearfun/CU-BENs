@@ -1,6 +1,6 @@
 //********************************************************************************
 //**																			**
-//**  Pertains to CU-BEN ver 3.0												**
+//**  Pertains to CU-BEN ver 3.14												**
 //**																			**
 //**  Copyright (c) 2016 C. J. Earls                                            **
 //**  Developed by C. J. Earls, Cornell University                              **
