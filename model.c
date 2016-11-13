@@ -1527,7 +1527,7 @@ int load (double *pq, double *pefFE_ref, double *px, double *pllength, double *p
 		fscanf(IFP[0], "%ld,%d,%lf\n", &jt, &dir, &mag);
         if (ALGFLAG == 5){
             if (mag == 0){
-                mag = 0.0000000000001;
+                mag = 0.00000000000000000001;
             }
         }
 		if (jt != 0) { // Check for joint loading
@@ -1554,7 +1554,7 @@ int load (double *pq, double *pefFE_ref, double *px, double *pllength, double *p
 				fscanf(IFP[0], "%ld,%d,%lf\n", &jt, &dir, &mag);
                 if (ALGFLAG == 5){
                     if (mag == 0){
-                        mag = 0.0000000000001;
+                        mag = 0.00000000000000000001;
                     }
                 }
 			} while (jt != 0); // Check for last joint load
