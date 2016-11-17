@@ -141,9 +141,9 @@ int solve (long *pjcode, double *pss, double *pss_fsi, double *psm, double *psm_
         a2 = 1/(alpha*dt*ddt);
         a3 = 1/(2*alpha) - 1;
         a4 = delta/alpha - 1;
-        a5 = dt/2*(delta/alpha - 2);
-        a6 = dt*(1-delta);
-        a7 = delta*dt;
+        a5 = (dt*ddt)/2*(delta/alpha - 2);
+        a6 = (dt*ddt)*(1-delta);
+        a7 = delta*(dt*ddt);
 
         /* Calculate effective stiffness matrix */
         if (ANAFLAG == 4) { // FSI analysis, cannot use skyline
@@ -291,13 +291,13 @@ int solve (long *pjcode, double *pss, double *pss_fsi, double *psm, double *psm_
             if (ANAFLAG != 4) { // Non-FSI analysis
                 if (SLVFLAG == 0) { // using skyline funciton
                     for (i = 0; i < NEQ; ++i){
-                        *(pReff+i) = *(pr+i) + (a2 * (*(pvm+i)) + (*(pam+i))) * (*(psm+i));
+                        *(pReff+i) = *(pr+i) + (a2*(*(pvm+i)) + a3*(*(pam+i)))*(*(psm+i));
                     }
                 }
             }else if (SLVFLAG == 1) { //using CLAPACK solver
                 for (i = 0; i<NEQ; ++i){
                     for(j = 0; j<NEQ; ++j){
-                        *(pReff+i) = *(pr+i) + (a2 * (*(pvm+i)) + (*(pam+i)))* (*(psm+i*NEQ+j));
+                        *(pReff+i) = *(pr+i) + (a2*(*(pvm+i)) + a3*(*(pam+i)))*(*(psm+i*NEQ+j));
                     }
                 }
             }
