@@ -3141,7 +3141,7 @@ int main (int argc, char **argv)
             double lpfi, lpfp, dlpfi; // Variables for NR iteration
             double ssd; // Dummy variable for solve function
             double time, ddt, dt_temp, sub_dt, tsflag; // Variables for time stepping scheme
-            double  a0, a1, a2, a3; // Variables for Newmark constants
+            double  a0, a1, a2, a3, a4, a5, a6, a7; // Variables for Newmark constants
 
             int inccnt; //Load increment counter
             int solcnt, solmin; // Minimum number of solutions
@@ -3221,7 +3221,7 @@ int main (int argc, char **argv)
                 }
             }
 
-            // Initialize new displacement, velocity, and accelearation arrays
+            // Initialize previous, new, and incremental displacement, velocity, and accelearation arrays
             for (i = 0; i < NEQ; ++i){
                 uc[i] = vc[i] = ac [i] = 0;
             }
@@ -3239,6 +3239,10 @@ int main (int argc, char **argv)
                     a1 = delta/(alpha*dt_temp);
                     a2 = 1/(alpha*dt_temp);
                     a3 = 1/(2*alpha) - 1;
+                    a4 = delta/alpha - 1;
+                    a5 = (dt*ddt)/2*(delta/alpha - 2);
+                    a6 = (dt*ddt)*(1-delta);
+                    a7 = delta*(dt*ddt);
 
                     // Initialize load step, converged solution, and subdivision counters
                     inccnt = solcnt = subcnt = 0;
@@ -3332,7 +3336,7 @@ int main (int argc, char **argv)
                             } else {
                                 // Compute residual force vector
                                 for (i = 0; i < NEQ; ++i) {
-                                    r[i] = f_temp[i] - qtot[i] + sm[i]*am[i] - sm[i]*(a2*vm[i] + am[i]);
+                                    r[i] = f_temp[i] - qtot[i] + sm[i]*ac_i[i] - sm[i]*(a2*vc_i[i] + a3*ac_i[i]);
                                 }
                             }
 
@@ -3373,7 +3377,7 @@ int main (int argc, char **argv)
                                 dd[0] = r[0] / ss[0];
                             } else {
                                 // Pass control to solve function
-                                errchk = solve (jcode, ss, ss, sm, sm, sd_fsi, r, dd, maxa, &ssd, &det, um, vm, am, uc_i, vc_i, ac_i, qtot, tinpt,
+                                errchk = solve (jcode, ss, ss, sm, sm, sd_fsi, r, dd, maxa, &ssd, &det, uc_i, vc_i, ac_i, um, vm, am, qtot, tinpt,
                                                 Keff, Reff, Meff, alpha, delta, ipiv, 0, ddt);
 
                                 // Terminate program if errors encountered
@@ -3394,36 +3398,13 @@ int main (int argc, char **argv)
                                 f_temp[i] = 0;
                             }
 
-                            if (itecnt == 0 ) {
-                                // Calculate displacements, velocities and accelerations
-                                for (i = 0; i < NEQ; ++i) {
-                                    uc_i[i] = d_temp[i];
-                                    vc_i[i] = (uc_i[i] - um[i])*a1 - vm[i];
-                                    ac_i[i] = (vc_i[i] - vm[i])*a1 - am[i]*a3;
-                                }
-
-                                // Assign current u, v, a to be the previous values
-                                for (i = 0; i < NEQ; ++i) {
-                                    um[i] = uc_i[i];
-                                    vm[i] = vc_i[i];
-                                    am[i] = ac_i[i];
-                                }
-
-                            } else {
-                                // Calculate current velocities and accelerations
-                                for (i = 0; i < NEQ; ++i) {
-                                     uc_i[i] += dd[i];
-                                     vc_i[i] += a1 * dd[i];
-                                     ac_i[i] += a0 * dd[i];
-                                }
-
-                                // Assign current u, v, a to be the previous values
-                                for (i = 0; i < NEQ; ++i) {
-                                     um[i] = uc_i[i];
-                                     vm[i] = vc_i[i];
-                                     am[i] = ac_i[i];
-                                }
+                            // Calculate displacements, velocities and accelerations
+                            for (i = 0; i < NEQ; ++i) {
+                                uc_i[i] = d_temp[i];
+                                ac_i[i] = (uc_i[i] - um[i])*a0 - a2*vm[i] - a3*am[i];
+                                vc_i[i] = vm[i] + a6*am[i] + a7*ac_i[i];
                             }
+
 
                             // Pass control to updatc function
                             updatc (x_temp, x_ip, xfr_temp, dd, defllen_i, deffarea_i, defslen_i,
@@ -3454,7 +3435,7 @@ int main (int argc, char **argv)
 
                             //Compute out-of-balance dynamic forces
                             for (i = 0; i < NEQ; ++i){
-                                dyn[i] = qtot[i] - sm[i] * am[i];
+                                dyn[i] = qtot[i] - sm[i] * ac_i[i];
                             }
 
                             if (itecnt == 0) {
