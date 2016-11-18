@@ -3216,7 +3216,7 @@ int main (int argc, char **argv)
                 }
             }
 
-            // Initialize previous, new, and incremental displacement, velocity, and accelearation arrays
+            // Initialize new displacement, velocity, and accelearation arrays
             for (i = 0; i < NEQ; ++i){
                 uc[i] = vc[i] = ac [i] = 0;
             }
