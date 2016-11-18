@@ -3235,9 +3235,9 @@ int main (int argc, char **argv)
                     a2 = 1/(alpha*dt_temp);
                     a3 = 1/(2*alpha) - 1;
                     a4 = delta/alpha - 1;
-                    a5 = (dt*ddt)/2*(delta/alpha - 2);
-                    a6 = (dt*ddt)*(1-delta);
-                    a7 = delta*(dt*ddt);
+                    a5 = (dt_temp)/2*(delta/alpha - 2);
+                    a6 = (dt_temp)*(1-delta);
+                    a7 = delta*(dt_temp);
 
                     // Initialize load step, converged solution, and subdivision counters
                     inccnt = solcnt = subcnt = 0;
