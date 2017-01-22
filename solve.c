@@ -134,16 +134,18 @@ int solve (long *pjcode, double *pss, double *pss_fsi, double *psm, double *psm_
                 *(pKeff+i) = 0;
             }
         }
+        
+        dt_temp = ddt * dt;
 
         // Calculate integration constants
-        a0 = 1/(alpha*pow(dt*ddt,2));
-        a1 = delta/(alpha*dt*ddt);
-        a2 = 1/(alpha*dt*ddt);
+        a0 = 1/(alpha*pow(dt_temp,2));
+        a1 = delta/(alpha*dt_temp);
+        a2 = 1/(alpha*dt_temp);
         a3 = 1/(2*alpha) - 1;
         a4 = delta/alpha - 1;
-        a5 = (dt*ddt)/2*(delta/alpha - 2);
-        a6 = (dt*ddt)*(1-delta);
-        a7 = delta*(dt*ddt);
+        a5 = (dt_temp)/2*(delta/alpha - 2);
+        a6 = (dt_temp)*(1-delta);
+        a7 = delta*(dt_temp);
 
         /* Calculate effective stiffness matrix */
         if (ANAFLAG == 4) { // FSI analysis, cannot use skyline
