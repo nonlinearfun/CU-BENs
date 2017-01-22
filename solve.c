@@ -77,6 +77,8 @@ int solve (long *pjcode, double *pss, double *pss_fsi, double *psm, double *psm_
     char trans = 'N';
     double time, sum = 0;
     double a0, a1, a2, a3, a4, a5, a6, a7;
+    double dt_temp; // Variable for time stepping scheme
+
 
     // Initialize CLAPACK variables
     int n, lda, ldb, info, nrhs = 1;
