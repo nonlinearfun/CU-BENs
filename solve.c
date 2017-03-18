@@ -68,7 +68,7 @@ extern FILE *IFP[2], *OFP[7];
 
 int solve (long *pjcode, double *pss, double *pss_fsi, double *psm, double *psm_fsi, double *psd_fsi, double *pr, double *pdd, long *pmaxa, double *pssd, int *pdet,
            double *pum, double *pvm, double *pam, double *puc, double *pvc, double *pac, double *pqdyn, double *ptstps,
-           double *pKeff, double *pReff, double *pMeff, double alpha, double delta, int *pipiv, int fact, double ddt)
+           double *pKeff, double *pReff, double *pMeff, double alpham, double alphaf, int *pipiv, int fact, double ddt)
 {
 
     // Initialize function variables
@@ -77,6 +77,8 @@ int solve (long *pjcode, double *pss, double *pss_fsi, double *psm, double *psm_
     char trans = 'N';
     double time, sum = 0;
     double a0, a1, a2, a3, a4, a5, a6, a7;
+    double alpha, delta;
+    double dt_temp;// Variable for time stepping scheme
 
     // Initialize CLAPACK variables
     int n, lda, ldb, info, nrhs = 1;
@@ -135,25 +137,29 @@ int solve (long *pjcode, double *pss, double *pss_fsi, double *psm, double *psm_
             }
         }
 
+        alpha = pow(1-alpham+alphaf, 2)/4;
+        delta = 0.5-alpham+alphaf;
+        dt_temp = ddt * dt;
+        
         // Calculate integration constants
-        a0 = 1/(alpha*pow(dt*ddt,2));
-        a1 = delta/(alpha*dt*ddt);
-        a2 = 1/(alpha*dt*ddt);
+        a0 = 1/(alpha*pow(dt_temp,2));
+        a1 = delta/(alpha*dt_temp);
+        a2 = 1/(alpha*dt_temp);
         a3 = 1/(2*alpha) - 1;
         a4 = delta/alpha - 1;
-        a5 = (dt*ddt)/2*(delta/alpha - 2);
-        a6 = (dt*ddt)*(1-delta);
-        a7 = delta*(dt*ddt);
+        a5 = (dt_temp)/2*(delta/alpha - 2);
+        a6 = (dt_temp)*(1-delta);
+        a7 = delta*(dt_temp);
 
         /* Calculate effective stiffness matrix */
         if (ANAFLAG == 4) { // FSI analysis, cannot use skyline
             for (i = 0; i < NEQ; ++i) {
                 for (j = 0; j < NEQ; ++j) {
                     if (i != j) {
-                        *(pKeff+j*NEQ+i) = *(pss_fsi+i*NEQ+j) + a0*(*(psm_fsi+i*NEQ+j));
+                        *(pKeff+j*NEQ+i) = (*(pss_fsi+i*NEQ+j))+a0*(1-alpham)*(*(psm_fsi+i*NEQ+j))/(1-alphaf);
                     }
                     else {
-                        *(pKeff+j*NEQ+i) = *(pss_fsi+i*NEQ+j) + a0*(*(psm_fsi+i*NEQ+j)) + a1*(*(psd_fsi+i));
+                        *(pKeff+j*NEQ+i) = (*(pss_fsi+i*NEQ+j))+a0*(1-alpham)*(*(psm_fsi+i*NEQ+j))/(1-alphaf)+a1*(*(psd_fsi+i));
                     }
                 }
             }
@@ -165,13 +171,13 @@ int solve (long *pjcode, double *pss, double *pss_fsi, double *psm, double *psm_
                 }
                 for (i = 0; i <  NEQ; ++i) { // Add mass to diagonal elements
                     k = *(pmaxa+i);
-                    *(pKeff+k-1) += *(psm_fsi+i)*a0;
+                    *(pKeff+k-1) += a0*(1-alpham)*(*(psm+i))/(1-alphaf);
                 }
             }
             else if (SLVFLAG == 1) { // using CLAPACK solver
                 for (i = 0; i < NEQ; ++i) {
                     for (j = 0; j < NEQ; ++j) {
-                        *(pKeff+j*NEQ+i) = *(pss+i*NEQ+j) + a0*(*(psm+i*NEQ+j));
+                    *(pKeff+j*NEQ+i) = (*(pss+i*NEQ+j))+a0*(1-alpham)*(*(psm+i*NEQ+j))/(1-alphaf);
                     }
                 }
             }
@@ -191,13 +197,21 @@ int solve (long *pjcode, double *pss, double *pss_fsi, double *psm, double *psm_
             for (i = 0; i < NEQ; ++i) {
                 *(puc+i) = *(pvc+i) = *(pac+i) = 0;
             }
+            
+            //Factorize stiffness matrix if generalized-alpha method applied
+            // Non-FSI analysis, using skyline function
+            if (alphaf != 0 && ANAFLAG != 4 && SLVFLAG == 0){
+                skyfact(pmaxa, pss, pssd, pdd, fact, pdet);
+            }
 
             // Loop through each time step to solve for displacements
             for (k = 0; k < NTSTPS; ++k) {
 
                 // Initialize Meff and Reff for new time step to zero
+                // Update displacement vector
                 for (i = 0; i < NEQ; ++i) {
                     *(pMeff+i) = 0;	*(pReff+i) = 0;
+                    *(pdd+i) = *(pum+i);
                 }
 
                 // Calculate effective mass matrix
@@ -205,7 +219,7 @@ int solve (long *pjcode, double *pss, double *pss_fsi, double *psm, double *psm_
                     for (i = 0; i < NEQ; ++i) {
                         sum = 0;
                         for (j = 0; j < NEQ; ++j) {
-                            sum += *(psm_fsi+i*NEQ+j) * (*(pum+j)*a0 + *(pvm+j)*a2 + *(pam+j)*a3);
+                            sum += *(psm_fsi+i*NEQ+j)*((1-alpham)*((*(pum+j))*a0+(*(pvm+j))*a2+(*(pam+j))*a3)-alpham*(*(pam+j)))/(1-alphaf);
                         }
                         *(pMeff+i) = sum;
                     }
@@ -213,14 +227,14 @@ int solve (long *pjcode, double *pss, double *pss_fsi, double *psm, double *psm_
                 else if (ANAFLAG != 4) { // Non-FSI analysis
                     if (SLVFLAG == 0) { // using skyline function
                         for (i = 0; i < NEQ; ++i) {
-                            *(pMeff+i) = *(psm+i) * (*(pum+i)*a0 + *(pvm+i)*a2 + *(pam+i)*a3);
+                            *(pMeff+i) = *(psm+i)*((1-alpham)*((*(pum+i))*a0+(*(pvm+i))*a2+(*(pam+i))*a3)-alpham*(*(pam+i)))/(1-alphaf);
                         }
                     }
                     else if (SLVFLAG == 1) { // using CLAPACK solver
                         for (i = 0; i < NEQ; ++i) {
                             sum = 0;
                             for (j = 0; j < NEQ; ++j) {
-                                sum += *(psm+i*NEQ+j) * (*(pum+j)*a0 + *(pvm+j)*a2 + *(pam+j)*a3);
+                                sum += *(psm+i*NEQ+j)*((1-alpham)*((*(pum+j))*a0+(*(pvm+j))*a2+(*(pam+j))*a3)-alpham*(*(pam+j)))/(1-alphaf);
                             }
                             *(pMeff+i) = sum;
                         }
@@ -228,14 +242,21 @@ int solve (long *pjcode, double *pss, double *pss_fsi, double *psm, double *psm_
                 }
 
                 // Calculate effective load vector
-                for (i = 0; i < NEQ; ++i) {
-                    *(pReff+i) = *(pqdyn+i*NTSTPS+k) + *(pMeff+i);
+                if (k == 0){ //First time step, cannot interpolate external force vectors
+                    for (i = 0; i < NEQ; ++i) {
+                        *(pReff+i) = (*(pqdyn+i*NTSTPS+k)) + *(pMeff+i);
+                    }
+                } else {
+                    for (i = 0; i < NEQ; ++i) {
+                        *(pReff+i) = (*(pqdyn+i*NTSTPS+k))+alphaf/(1-alphaf)*(*(pqdyn+i*NTSTPS+k-1))+ *(pMeff+i);
+                    }
                 }
 
                 // Calculate effective damping vector (re-use Meff)
                 if (ANAFLAG == 4) {
                     for (i = 0; i < NEQ; ++i) {
-                        *(pMeff+i) = *(psd_fsi+i) * (*(pum+i)*a1 + *(pvm+i)*a4 + *(pam+i)*a5);
+                        *(pMeff+i) = *(psd_fsi+i)*((*(pum+i)*a1+(*(pvm+i))*a4+(*(pam+i))*a5)-alphaf/(1-alphaf)*(*(pum+i)));
+                        *(pReff+i) += *(pMeff+i);
                     }
                 }
 
@@ -243,6 +264,33 @@ int solve (long *pjcode, double *pss, double *pss_fsi, double *psm, double *psm_
                 if (ANAFLAG == 4) {
                     for (i = 0; i < NEQ; ++i) {
                         *(pReff+i) += *(pMeff+i);
+                    }
+                }
+                
+                // Calculate static force vector if generalized-alpha method applied
+                if (alphaf != 0 ){
+                    if(ANAFLAG != 4 && SLVFLAG == 0){// Non-FSI analysis, using skyline function
+                        skymult (pmaxa, pss, pssd, pdd, fact, pdet);
+                    }
+                    else if (ANAFLAG == 4 || SLVFLAG == 1){// FSI analysis, cannot use skyline function
+                        double beta, gamma;
+                        int incx, incy;
+                        incx = incy = 1;
+                        beta = 1;
+                        gamma = 0;
+                        
+                        for (i= 0; i<NEQ; ++i){
+                            *(pssd+i) = 0;
+                        }
+                        
+                        cblas_dgemv(CblasRowMajor, CblasNoTrans, m, n, beta, pss, lda, pdd, incx, gamma, pssd, incy);
+                        
+                        for (i = 0; i < NEQ; ++i) {
+                            *(pdd+i) = *(pssd+i);
+                        }
+                    }
+                    for (i = 0; i < NEQ; ++i) {
+                        *(pReff+i) -= alphaf/(1-alphaf)*(*(pdd+i));
                     }
                 }
 
@@ -266,8 +314,6 @@ int solve (long *pjcode, double *pss, double *pss_fsi, double *psm, double *psm_
                     *(pvc+i) = *(pvm+i) + a6*(*(pam+i)) + a7*(*(pac+i));
                 }
 
-
-
                 time = k*dt;
                 // Pass control to output function
                 output (&time, &dum, puc, puc, 1);
@@ -288,17 +334,17 @@ int solve (long *pjcode, double *pss, double *pss_fsi, double *psm, double *psm_
             }
 
             //Compute the equivalent change in dynamic external force vector
-            if (ANAFLAG != 4) { // Non-FSI analysis
-                if (SLVFLAG == 0) { // using skyline funciton
-                    for (i = 0; i < NEQ; ++i){
-                        *(pReff+i) = *(pr+i) + (a2*(*(pvm+i)) + a3*(*(pam+i)))*(*(psm+i));
-                    }
+            if (SLVFLAG == 0) { // using skyline funciton
+                for (i = 0; i < NEQ; ++i){
+                    *(pReff+i) = *(pr+i) + *(psm+i)*((1-alpham)*((*(pvm+i))*a2+(*(pam+i))*a3)-alpham*(*(pam+i)))/(1-alphaf);
                 }
-            }else if (SLVFLAG == 1) { //using CLAPACK solver
-                for (i = 0; i<NEQ; ++i){
-                    for(j = 0; j<NEQ; ++j){
-                        *(pReff+i) = *(pr+i) + (a2*(*(pvm+i)) + a3*(*(pam+i)))*(*(psm+i*NEQ+j));
+            }else if (ANAFLAG ==4 || SLVFLAG == 1) { //using CLAPACK solver
+                for (i = 0; i < NEQ; ++i) {
+                    sum = 0;
+                    for (j = 0; j < NEQ; ++j) {
+                        sum += *(psm+i*NEQ+j);
                     }
+                    *(pReff+i) = *(pr+i)+sum*((1-alpham)*((*(pvm+i))*a2+(*(pam+i))*a3)-alpham*(*(pam+i)))/(1-alphaf);
                 }
             }
 
@@ -476,6 +522,65 @@ int skysolve (long *pmaxa, double *pss_temp, double *pssd, double *pdd, int fact
                 k--;
                 *(pdd+k-1) -= *(pss_temp+kk-1) * (*(pdd+n-1));
             }
+        }
+        n--;
+    }
+    return 0;
+}
+
+int skymult (long *pmaxa, double *pss_temp, double *pssd, double *pdd, int fact, int *pdet)
+{
+    
+    // Initialize function variables
+    long i, n, kl, ku, kh, k, kk;
+    double c;
+    
+    
+    for (n = 1; n <= NEQ; ++n) {
+        *(pssd+n-1)=0;
+    }
+    
+    //Compute L^Tx=y
+    n = NEQ;
+    for (i = 2; i <= NEQ; ++i) {
+        kl = *(pmaxa+n-1) + 1;
+        ku = *(pmaxa+n) - 1;
+        kh = ku - kl;
+        if (kh >= 0) {
+            k = n;
+            for (kk = kl; kk <= ku; ++kk) {
+                k--;
+                *(pssd+k-1) += *(pss_temp+kk-1) * (*(pdd+n-1));
+            }
+        }
+        n--;
+    }
+    
+    // Compute Dy=z
+    for (n = 0; n < NEQ; ++n) {
+        k = *(pmaxa+n);
+        *(pdd+n) = (*(pssd+n)+(*(pdd+n)))*(*(pss_temp+k-1));
+    }
+    
+    
+    for (n = 1; n <= NEQ; ++n) {
+        *(pssd+n-1)=0;
+    }
+    
+    //Compute Lz=b
+    n = NEQ;
+    for (i = 1; i <= NEQ; ++i) {
+        kl = *(pmaxa+n-1) + 1;
+        ku = *(pmaxa+n) - 1;
+        kh = ku - kl;
+        if (kh >= 0) {
+            k = n;
+            c = 0;
+            for (kk = kl; kk <= ku; ++kk) {
+                k--;
+                c += *(pss_temp+kk-1) * (*(pdd+k-1));
+            }
+            *(pdd+n-1) += c;
         }
         n--;
     }
