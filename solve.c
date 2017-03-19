@@ -334,7 +334,7 @@ int solve (long *pjcode, double *pss, double *pss_fsi, double *psm, double *psm_
             }
 
             //Compute the equivalent change in dynamic external force vector
-            if (SLVFLAG == 0) { // using skyline funciton
+            if (ANAFLAG != 4 && SLVFLAG == 0) { // Non-FSI analysis, using skyline funciton
                 for (i = 0; i < NEQ; ++i){
                     *(pReff+i) = *(pr+i) + *(psm+i)*((1-alpham)*((*(pvm+i))*a2+(*(pam+i))*a3)-alpham*(*(pam+i)))/(1-alphaf);
                 }
