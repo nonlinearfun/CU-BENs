@@ -1,8 +1,8 @@
 //********************************************************************************
 //**																			**
-//**  Pertains to CU-BEN ver 3.14												**
+//**  Pertains to CU-BEN ver 3.141												**
 //**																			**
-//**  Copyright (c) 2016 C. J. Earls                                            **
+//**  Copyright (c) 2017 C. J. Earls                                            **
 //**  Developed by C. J. Earls, Cornell University                              **
 //**  All rights reserved.														**
 //**                                                                            **
