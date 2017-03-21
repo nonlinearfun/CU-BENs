@@ -239,9 +239,9 @@
                     1, 1 - standard Newmark
                     1, 0.9 - Generalized-alpha method with spectral radius of 0.9
                     2, 1 - standard Newmark
-                    2, 0.9 - HHT method with spectral radius of 0.9
+                    2, 0.9 - HHT method with spectral radius of 0.9 (Hilber, et al. 1977)
                     3, 1 - standard Newmark
-                    3, 0.9 - WBZ method with spectral radius of 0.9
+                    3, 0.9 - WBZ method with spectral radius of 0.9 (Wood, et al. 1981)
             }
             if (ALGFLAG == 5){
                 The load history is under linear interpolation assumption in the case when damping scheme is applied.
@@ -260,9 +260,9 @@
                     1, 1 - standard Newmark
                     1, 0.9 - Generalized-alpha method with spectral radius of 0.9
                     2, 1 - standard Newmark
-                    2, 0.9 - HHT method with spectral radius of 0.9
+                    2, 0.9 - HHT method with spectral radius of 0.9 (Hilber, et al. 1977)
                     3, 1 - standard Newmark
-                    3, 0.9 - WBZ method with spectral radius of 0.9
+                    3, 0.9 - WBZ method with spectral radius of 0.9 (Wood, et al. 1981)
                 enter load proportionality factor parameters (in main):
                     maximum lambda - lpfmax
                     initial lambda - lpf
