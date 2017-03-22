@@ -1,8 +1,8 @@
 //********************************************************************************
 //**																			**
-//**  Pertains to CU-BEN ver 3.14												**
+//**  Pertains to CU-BEN ver 3.141												**
 //**																			**
-//**  Copyright (c) 2016 C. J. Earls                                            **
+//**  Copyright (c) 2017 C. J. Earls                                            **
 //**  Developed by C. J. Earls, Cornell University                              **
 //**  All rights reserved.														**
 //**                                                                            **
@@ -60,7 +60,7 @@
 //#include "f2c.h"
 
 /*
- CU-BEN Serial Version 3.14 (October 26, 2016)
+ CU-BEN Serial Version 3.141 (March 14, 2017)
 
  Analysis Options:
     1st order elastic, i.e. "linear elastic"
@@ -233,10 +233,19 @@
                 enter all non-zero initial conditions for node displacement, velocity, and acceleration (in load)
                     joint,dir,disp,vel,acc;
                     end = 0,0,0,0,0
-                enter alpha and delta parameters for Newmark time integration scheme
-                    alpha,delta
+                enter Newmark time integration scheme option and spectral radius
+                    numopt,spectrds
+                    0, 1 - standard Newmark
+                    1, 1 - standard Newmark
+                    1, 0.9 - Generalized-alpha method with spectral radius of 0.9
+                    2, 1 - standard Newmark
+                    2, 0.9 - HHT method with spectral radius of 0.9 (Hilber, et al. 1977)
+                    3, 1 - standard Newmark
+                    3, 0.9 - WBZ method with spectral radius of 0.9 (Wood, et al. 1981)
             }
             if (ALGFLAG == 5){
+                The load history is under linear interpolation assumption in the case when damping scheme is applied.
+                Limit the size of delta T that may be used to maintain fidelity with the loading history.
                 enter initial number of time steps (in load) and total time for analysis (s);
                     *** enter on single line as: ntstpsinpt, ttot
                 enter reference concentrated load(s) on joints for each time step (in load); i = 0:ntstpsinpt
@@ -245,8 +254,15 @@
                 enter all non-zero initial conditions for node displacement, velocity, and acceleration (in load)
                     joint,dir,disp,vel,acc;
                     end = 0,0,0,0,0
-                enter alpha and beta parameters for Newmark time integration scheme
-                    alpha,delta
+                enter Newmark time integration scheme option and spectral radius
+                    numopt,spectrds
+                    0, 1 - standard Newmark
+                    1, 1 - standard Newmark
+                    1, 0.9 - Generalized-alpha method with spectral radius of 0.9
+                    2, 1 - standard Newmark
+                    2, 0.9 - HHT method with spectral radius of 0.9 (Hilber, et al. 1977)
+                    3, 1 - standard Newmark
+                    3, 0.9 - WBZ method with spectral radius of 0.9 (Wood, et al. 1981)
                 enter load proportionality factor parameters (in main):
                     maximum lambda - lpfmax
                     initial lambda - lpf
@@ -2994,7 +3010,7 @@ int main (int argc, char **argv)
             output (&lpfmax, &itecnt, d, ef, 0);
 
             // Newmark integration constants
-            double alpha, delta;
+            double alpham, alphaf, numopt, spectrds;
 
             // Initialize generalized total nodal displacement and internal force vectors
             for (i = 0; i < NEQ; ++i) {
@@ -3032,7 +3048,13 @@ int main (int argc, char **argv)
             }
 
             // Time integration parameters
-            fscanf(IFP[0], "%lf,%lf\n", &alpha, &delta);
+            fscanf(IFP[0], "%lf,%lf\n", &numopt, &spectrds);
+            
+            if (numopt == 0 && spectrds != 1) {
+                fprintf(OFP[0], "\n***ERROR*** Invalid spectral radius value for Newmark");
+                fprintf(OFP[0], "  analysis without numerical dissipation.\n");
+                goto EXIT1;
+            }
 
             // Read in solver parameters from input file
             fscanf(IFP[0], "%lf\n", &lpfmax);
@@ -3040,6 +3062,22 @@ int main (int argc, char **argv)
                 fprintf(IFP[1], "%le\n", lpfmax);
             }
 
+            /* Determine Newmark integration variables given numerical dissipation options
+             and spectral radius */
+            if(numopt == 0){
+                alpham = 0;
+                alphaf = 0;
+            } else if (numopt == 1){
+                alpham = (2*spectrds-1)/(spectrds+1);
+                alphaf = spectrds/(spectrds+1);
+            } else if (numopt == 2){
+                alpham = 0;
+                alphaf = (1-spectrds)/(1+spectrds);
+            } else if (numopt == 3){
+                alpham = (spectrds-1)/(spectrds+1);
+                alphaf = 0;
+            }
+            
             /* Compute generalized total external load vector, accounting for
              generalized fixed-end load vector */
             for (i = 0; i < NEQ; ++i) {
@@ -3049,6 +3087,7 @@ int main (int argc, char **argv)
             // Initialize tangent stiffness matrix to zero
             for (i = 0; i < lss; ++i) {
                 ss[i] = 0;
+                sm[i] = 0;
             }
 
             if (NE_TR > 0) {
@@ -3096,7 +3135,7 @@ int main (int argc, char **argv)
 
             // Pass control to solve function
             errchk = solve (jcode, ss, ss, sm, sm, sd_fsi, r, dd, maxa, &ssd, &det, um, vm, am, uc, vc, ac, pinpt, tinpt,
-                            Keff, Reff, Meff, alpha, delta, ipiv, 0, 1);
+                            Keff, Reff, Meff, alpham, alphaf, ipiv, 0, 1);
 
             // Terminate program if errors encountered
             if (errchk == 1) {
@@ -3134,16 +3173,17 @@ int main (int argc, char **argv)
 
             //Define secondary non-array variables, specific to NR algorithm
             double lpfi, lpfp, dlpfi; // Variables for NR iteration
-            double ssd; // Dummy variable for solve function
+            double ssd, sum; // Dummy variables for solve function
             double time, ddt, dt_temp, sub_dt, tsflag; // Variables for time stepping scheme
             double  a0, a1, a2, a3, a4, a5, a6, a7; // Variables for Newmark constants
+            double numopt, spectrds, alpham, alphaf; //numerical dissipation options and spectral radius
 
             int inccnt; //Load increment counter
             int solcnt, solmin; // Minimum number of solutions
             int i, k;
 
             //Read in Newmark integration constants
-            fscanf(IFP[0], "\n%lf,%lf\n", &alpha, &delta);
+            fscanf(IFP[0], "\n%lf,%lf\n", &numopt, &spectrds);
             
             // Read in solver parameters from input file
             fscanf(IFP[0], "%lf,%lf,%lf,%lf,%lf\n", &lpfmax, &lpf, &dlpf, &dlpfmax,
@@ -3154,6 +3194,31 @@ int main (int argc, char **argv)
             if (OPTFLAG == 2) {
                 fprintf(IFP[1], "%d,%d,%d\n", itemax, submax, solmin);
             }
+            
+            if (numopt == 0 && spectrds != 1) {
+                fprintf(OFP[0], "\n***ERROR*** Invalid spectral radius value for Newmark");
+                fprintf(OFP[0], "  analysis without numerical dissipation.\n");
+                goto EXIT1;
+            }
+            
+            //Determine Newmark integration variables given numerical dissipation options
+            //and spectral radius
+            if(numopt == 0){
+                alpham = 0;
+                alphaf = 0;
+            } else if (numopt == 1){
+                alpham = (2*spectrds-1)/(spectrds+1);
+                alphaf = spectrds/(spectrds+1);
+            } else if (numopt == 2){
+                alpham = 0;
+                alphaf = (1-spectrds)/(1+spectrds);
+            } else if (numopt == 3){
+                alpham = (spectrds-1)/(spectrds+1);
+                alphaf = 0;
+            }
+            
+            alpha = pow(1-alpham+alphaf, 2)/4;
+            delta = 0.5-alpham+alphaf;
 
             /* Evaluate expression for actual dt. If actual dt < input dt, then linearlly
              interpolate between the input loads to get load, pressure and fluid acceleration
@@ -3320,21 +3385,44 @@ int main (int argc, char **argv)
                         frcchk_fr = frcchk_sh = 0;
 
                         do {
-                            if (itecnt == 0) {
-                                for (i = 0; i < NEQ; ++i) {
-                                    /* Compute generalized total external load vector, accounting for
-                                     generalized fixed-end load vector */
-                                    qtot[i] = (pinpt[i*NTSTPS+k-1] + (pinpt[i*NTSTPS+k]-pinpt[i*NTSTPS+k-1])*(sub_dt))*lpf;
-                                    // Compute residual force vector
-                                    r[i] = qtot[i] - f_temp[i];
+                            /* The load history is under linear interpolation assumption in the case when damping scheme is applied. Limit the size of delta T that may be used to maintain fidelity with the loading history. */
+                            if (itecnt == 0) {// Predictor step
+                                if (k == 0){
+                                    for (i = 0; i < NEQ; ++i){
+                                        /* Compute generalized total external load vector, accounting for
+                                         generalized fixed-end load vector */
+                                        qtot[i] = pinpt[i*NTSTPS+k]*sub_dt*lpf;
+                                        // Compute residual force vector
+                                        r[i] = qtot[i] - f_temp[i];
+                                    }
+                                }else {
+                                    for (i = 0; i < NEQ; ++i) {
+                                        /* Compute generalized total external load vector, accounting for
+                                         generalized fixed-end load vector */
+                                        qtot[i] = (pinpt[i*NTSTPS+k-1]+(pinpt[i*NTSTPS+k]-pinpt[i*NTSTPS+k-1])*(sub_dt))*lpf;
+                                        // Compute residual force vector
+                                        r[i] = (qtot[i]-f_temp[i]) + alphaf/(1-alphaf)*(pinpt[i*NTSTPS+k-1]-f_temp[i]);
+                                    }
                                 }
-                            } else {
+                            } else { // Corrector steps
                                 // Compute residual force vector
-                                for (i = 0; i < NEQ; ++i) {
-                                    r[i] = f_temp[i] - qtot[i] + sm[i]*ac_i[i] - sm[i]*(a2*vc_i[i] + a3*ac_i[i]);
+                                if (SLVFLAG == 0) {
+                                    for (i = 0; i< NEQ; ++i){
+                                        r[i] = (f_temp[i]-qtot[i]);
+                                        r[i] = r[i]+sm[i]*ac_i[i]-sm[i]*((a2*vc_i[i]+a3*ac_i[i])*(1-alpham)-ac_i[i]*alpham)/(1-alphaf);
+                                    }
+                                } else if (SLVFLAG == 1){
+                                    for (i = 0; i < NEQ; ++i) {
+                                        sum = 0;
+                                        for (j = 0; j < NEQ; ++j) {
+                                            sum += sm[i*NEQ+j];
+                                        }
+                                        r[i] = (f_temp[i]-qtot[i]);
+                                        r[i] = r[i]+sum*ac_i[i]-sum*((a2*vc_i[i]+a3*ac_i[i])*(1-alpham)-ac_i[i]*alpham)/(1-alphaf);
+                                    }
                                 }
                             }
-
+                            
                             for (i = 0; i < lss; ++i) {
                                 ss[i] = 0;
                                 sm[i] = 0;
@@ -3373,7 +3461,7 @@ int main (int argc, char **argv)
                             } else {
                                 // Pass control to solve function
                                 errchk = solve (jcode, ss, ss, sm, sm, sd_fsi, r, dd, maxa, &ssd, &det, uc_i, vc_i, ac_i, um, vm, am, qtot, tinpt,
-                                                Keff, Reff, Meff, alpha, delta, ipiv, 0, ddt);
+                                                Keff, Reff, Meff, alpham, alphaf, ipiv, 0, ddt);
 
                                 // Terminate program if errors encountered
                                 if (errchk == 1) {
@@ -3429,8 +3517,19 @@ int main (int argc, char **argv)
                             }
 
                             //Compute out-of-balance dynamic forces
-                            for (i = 0; i < NEQ; ++i){
-                                dyn[i] = qtot[i] - sm[i] * ac_i[i];
+                            if (SLVFLAG == 0) {
+                                for (i = 0; i < NEQ; ++i){
+                                    dyn[i] = qtot[i] - sm[i]*ac_i[i];
+                                }
+                            }
+                            else if (SLVFLAG == 1) { // using CLAPACK solver
+                                for (i = 0; i < NEQ; ++i) {
+                                    sum = 0;
+                                    for (j = 0; j < NEQ; ++j) {
+                                        sum += sm[i*NEQ+j];
+                                    }
+                                    dyn[i] = qtot[i] - sum*ac_i[i];
+                                }
                             }
 
                             if (itecnt == 0) {

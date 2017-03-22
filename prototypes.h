@@ -1,8 +1,8 @@
 //********************************************************************************
 //**																			**
-//**  Pertains to CU-BEN ver 3.14												**
+//**  Pertains to CU-BEN ver 3.141												**
 //**																			**
-//**  Copyright (c) 2016 C. J. Earls                                            **
+//**  Copyright (c) 2017 C. J. Earls                                            **
 //**  Developed by C. J. Earls, Cornell University                              **
 //**  All rights reserved.														**
 //**                                                                            **
@@ -335,12 +335,16 @@ solve.c
    (Bathe 1976, p. 257) */
 int solve (long *pjcode_fsi, double *pss, double *pss_fsi, double *psm, double *psm_fsi, double *psd_fsi, double *pr, double *pdd, long *pmaxa, double *pssd, int *pdet,
 		   double *pum, double *pvm, double *pam, double *puc, double *pvc, double *pac, double *pqdyn, double *ptstps, 
-		   double *pKeff, double *pReff, double *pMeff, double alpha, double delta, int *pipiv, int fact, double ddt);
+		   double *pKeff, double *pReff, double *pMeff, double alpham, double alphaf, int *pipiv, int fact, double ddt);
 
 /* This function performs LDL^t factorization of the stiffness matrix when using SLVFLAG == 0*/
 int skyfact (long *pmaxa, double *pss_temp, double *pssd, double *pdd, int fact, int *pdet);
 
+/*This function solves for x in Ax=b*/
 int skysolve (long *pmaxa, double *pss, double *pssd, double *pdd, int fact, int *pdet);
+
+/*This function solves for b in Ax=b*/
+int skymult (long *pmaxa, double *pss_temp, double *pssd, double *pdd, int fact, int *pdet);
 
 /*
 arc.c
