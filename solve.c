@@ -253,16 +253,10 @@ int solve (long *pjcode, double *pss, double *pss_fsi, double *psm, double *psm_
                 }
 
                 // Calculate effective damping vector (re-use Meff)
-                if (ANAFLAG == 4) {
-                    for (i = 0; i < NEQ; ++i) {
-                        *(pMeff+i) = *(psd_fsi+i)*((*(pum+i)*a1+(*(pvm+i))*a4+(*(pam+i))*a5)-alphaf/(1-alphaf)*(*(pum+i)));
-                        *(pReff+i) += *(pMeff+i);
-                    }
-                }
-
                 // Add effective damping vector to effective load vector
                 if (ANAFLAG == 4) {
                     for (i = 0; i < NEQ; ++i) {
+                        *(pMeff+i) = *(psd_fsi+i)*((*(pum+i)*a1+(*(pvm+i))*a4+(*(pam+i))*a5)-alphaf/(1-alphaf)*(*(pum+i)));
                         *(pReff+i) += *(pMeff+i);
                     }
                 }
