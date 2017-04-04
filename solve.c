@@ -136,6 +136,8 @@ int solve (long *pjcode, double *pss, double *pss_fsi, double *psm, double *psm_
                 *(pKeff+i) = 0;
             }
         }
+        
+        dt_temp = ddt * dt;
 
         alpha = pow(1-alpham+alphaf, 2)/4;
         delta = 0.5-alpham+alphaf;
