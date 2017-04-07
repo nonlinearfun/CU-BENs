@@ -1,6 +1,6 @@
 //********************************************************************************
 //**																			**
-//**  Pertains to CU-BEN ver 3.141												**
+//**  Pertains to CU-BEN ver 3.1415												**
 //**																			**
 //**  Copyright (c) 2017 C. J. Earls                                            **
 //**  Developed by C. J. Earls, Cornell University                              **
@@ -60,7 +60,7 @@
 //#include "f2c.h"
 
 /*
- CU-BEN Serial Version 3.141 (March 14, 2017)
+ CU-BEN Serial Version 3.1415 (March 14, 2017)
 
  Analysis Options:
     1st order elastic, i.e. "linear elastic"
