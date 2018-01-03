@@ -1,6 +1,6 @@
 //********************************************************************************
 //**																			**
-//**  Pertains to CU-BEN ver 3.141												**
+//**  Pertains to CU-BEN ver 3.1415												**
 //**																			**
 //**  Copyright (c) 2017 C. J. Earls                                            **
 //**  Developed by C. J. Earls, Cornell University                              **
@@ -60,7 +60,7 @@
 //#include "f2c.h"
 
 /*
- CU-BEN Serial Version 3.141 (March 14, 2017)
+ CU-BEN Serial Version 3.1415 (March 14, 2017)
 
  Analysis Options:
     1st order elastic, i.e. "linear elastic"
@@ -205,7 +205,7 @@
             *** enter on single line as: norpt[i,1],norpt[i,2],norpt[i,3]
         enter number of time steps (in main) and total time for analysis (s);
             *** enter on single line as: ntstpsinpt, ttot
-        enter concentrated load, nodal acceleration(s) and fluid incident pressure(s) applied during time stepon joints for each time step (in load_fsi) - i = 0:ntstpsinpt
+        enter concentrated load, nodal acceleration(s) and fluid incident pressure(s) applied during time step on joints for each time step (in load_fsi) - i = 0:ntstpsinpt
             joint,dir,force,fpress,facc;
             end = 0,0,0,0,0
         enter initial conditions for node displacement or pressure and 1st or 2nd derivatives.  If dir = 4, initial condition refers to a fluid DOF (in load_fsi)
@@ -352,12 +352,12 @@ int main (int argc, char **argv)
     } else if (ANAFLAG == 3) {
         fprintf(OFP[0], "Analysis Type:\n\t2nd Order Inelastic\n");
     } else if (ANAFLAG == 1 && ALGFLAG == 4) {
-        fprintf(OFP[0], "Analysis Type:\n\t1stOrder Elastic Dynamic\n");
+        fprintf(OFP[0], "Analysis Type:\n\t1st Order Elastic Dynamic\n");
     } else if (ANAFLAG == 2 && ALGFLAG == 5) {
         fprintf(OFP[0], "Analysis Type:\n\t2nd Order Elastic Dynamic\n");
     } else if (ANAFLAG == 3 && ALGFLAG == 5) {
         fprintf(OFP[0], "Analysis Type:\n\t2nd Order Inelastic Dynamic\n");
-    }else if (ANAFLAG == 4 && ALGFLAG != 5) {
+    }else if (ANAFLAG == 4 && ALGFLAG != 1 && ALGFLAG != 2 && ALGFLAG != 3 && ALGFLAG != 5) {
         fprintf(OFP[0], "Analysis Type:\n\tFluid Structure Interaction\n");
     } else if (ANAFLAG == 666) {
         fprintf(OFP[0], "***ERROR*** Input file is empty\n");
