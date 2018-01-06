@@ -59,7 +59,7 @@
 
 extern long NEQ;
 extern int OPTFLAG;
-extern FILE *IFP[2], *OFP[6];
+extern FILE *IFP[4], *OFP[8];
 
 int msal (double *pdk, long *pdkdof, long *pjnt, long *pjcode)
 {
