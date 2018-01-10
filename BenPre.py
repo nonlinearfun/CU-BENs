@@ -1,6 +1,83 @@
-#Beta version, Justyna Kosianka, 7/27/16
+#BenPre - a automated assistant for building CU-BEN input files from Abaqus *.inp files
+
+#Beta version, Justyna Kosianka, 1/04/18
 
 import csv
+
+#User passes through file name for Abaqus input
+file_name = raw_input("Enter Abaqus *.inp File Name:\n>> ")
+
+#Collect geometry information from Abaqus input file
+#Input CU-BEN.inp
+CUBEN = list(csv.reader(open(file_name, 'rb'), delimiter=','))
+
+#Determine number of joints from .inp file
+var = "*Node"
+line_node = [(index, row.index(var)) for index, row in enumerate(CUBEN) if var in row]
+if not line_node:
+    var = "*NODE"
+    line_node = [(index, row.index(var)) for index, row in enumerate(CUBEN) if var in row]
+if not line_node:
+    var = "*Node                                                                                                                   "
+    line_node = [(index, row.index(var)) for index, row in enumerate(CUBEN) if var in row]
+line_node = line_node[0][0]
+var = "*Element"
+line_elem = [(index, row.index(var)) for index, row in enumerate(CUBEN) if var in row]
+if not line_elem:
+    var = var = "*ELEMENT"
+    line_elem = [(index, row.index(var)) for index, row in enumerate(CUBEN) if var in row]
+line_elem = line_elem[0][0]
+NJ = (line_elem - line_node - 1)
+
+#Determine number of elements from .inp file for SHELL ONLY
+var = "*Nset"
+line_Nset = [(index, row.index(var)) for index, row in enumerate(CUBEN) if var in row]
+if not line_Nset:
+    var = "*NSET"
+    line_Nset = [(index, row.index(var)) for index, row in enumerate(CUBEN) if var in row]
+if not line_Nset:
+    print "Model was not built in accordance to file creation protocol. This will not successfully build a CU-BEN input file."
+    exit()
+line_Nset1 = line_Nset[0][0]
+line_Nset = [y[0] for y in line_Nset]
+var = "*Elset"
+line_Elset = [(index, row.index(var)) for index, row in enumerate(CUBEN) if var in row]
+if not line_Elset:
+    var = "*ELSET"
+    line_Elset = [(index, row.index(var)) for index, row in enumerate(CUBEN) if var in row]
+line_Elset1 = line_Elset[0][0]
+line_Elset = [y[0] for y in line_Elset]
+
+if line_Nset1 < line_Elset1:
+    NSH = (line_Nset1 - line_elem - 1)
+else:
+    NSH = (line_Elset1 - line_elem - 1)
+
+#Collect SHELL member incidence from *Element, type=S3 in .inp file
+minc = CUBEN[(line_elem + 1):(line_elem + NSH + 1)]
+
+#Check if model is meshed correctly to build model_def.txt
+if len(minc[0]) > 4:
+    print "Model was not meshed with S3 shell elements in Abaqus. Please re-mesh and try again."
+    exit()
+
+var = "** STEP: TimeSteps"
+line_TimeSteps = [(index, row.index(var)) for index, row in enumerate(CUBEN) if var in row]
+if not line_TimeSteps:
+    var = "** STEP: TimeStep"
+    line_TimeSteps = [(index, row.index(var)) for index, row in enumerate(CUBEN) if var in row]
+if not line_TimeSteps:
+    var = "** STEP: Step-1"
+    line_TimeSteps = [(index, row.index(var)) for index, row in enumerate(CUBEN) if var in row]
+if not line_TimeSteps:
+    print "Model was not loaded in accordance to file creation protocol. Please re-apply load and try again."
+    exit()
+line_TimeSteps = line_TimeSteps[0][0]
+var = "*End Step"
+line_EndStep = [(index, row.index(var)) for index, row in enumerate(CUBEN) if var in row]
+line_EndStep = [y[0] for y in line_EndStep]
+end_TimeSteps = [j for j in line_EndStep if j > line_TimeSteps]
+end_TimeSteps = end_TimeSteps[0]
 
 #Create a file called model_def.txt
 model_def = open('model_def.txt','w')
@@ -12,16 +89,28 @@ ANAFLAG = input("Enter analysis type:\n[1 - 1st order elastic / 2 - 2nd order el
 ALGFLAG = input("Enter solution algorithm type:\n[0 - (Static) Direct Stiffness / 1 - (Static) Newton Raphson / 2 - (Static) Modified Newton Raphson / 3 - (Static) Modified Spherical Arc Length Method / 4 - (Dynamic) Newmark Implicit Integration Method / 5 - (Dynamic) Nonlinear Newmark Implicit Integration Method]\n>> ")
 
 #Check for invalid combination of analysis and algorithm
-if ((ALGFLAG == 0) and (ANAFLAG != 1)):
+if ((ALGFLAG == 0) and (ANAFLAG > 1)):
     print "Invalid combination of analysis and solution algorithm type: Static Direct Stiffness method can only analyze 1st order elatic models."
     ANAFLAG = input("Enter analysis type:\n[1 - 1st order elastic / 2 - 2nd order elastic / 3 - 2nd order inelastic]\n>> ")
     ALGFLAG = input("Enter solution algorithm type:\n[0 - (Static) Direct Stiffness / 1 - (Static) Newton Raphson / 2 - (Static) Modified Newton Raphson / 3 - (Static) Modified Spherical Arc Length Method / 4 - (Dynamic) Newmark Implicit Integration Method / 5 - (Dynamic) Nonlinear Newmark Implicit Integration Method]\n>> ")
-elif ((ALGFLAG == 4) and (ANAFLAG != 1)):
+elif ((ALGFLAG == 4) and (ANAFLAG > 1)):
     print "Invalid combination of analysis and solution algorithm type: Dynamic Newmark Implicit Integration Method can only analyze 1st order linear elastic models."
     ANAFLAG = input("Enter analysis type:\n[1 - 1st order elastic / 2 - 2nd order elastic / 3 - 2nd order inelastic]\n>> ")
     ALGFLAG = input("Enter solution algorithm type:\n[0 - (Static) Direct Stiffness / 1 - (Static) Newton Raphson / 2 - (Static) Modified Newton Raphson / 3 - (Static) Modified Spherical Arc Length Method / 4 - (Dynamic) Newmark Implicit Integration Method / 5 - (Dynamic) Nonlinear Newmark Implicit Integration Method]\n>> ")
 elif ((ALGFLAG == 5) and (ANAFLAG == 1)):
     print "Invalid combination of analysis and solution algorithm type: Dynamic Nonlinear Newmark Implicit Integration Method cannot analyze 1st order linear elastic models."
+    ANAFLAG = input("Enter analysis type:\n[1 - 1st order elastic / 2 - 2nd order elastic / 3 - 2nd order inelastic]\n>> ")
+    ALGFLAG = input("Enter solution algorithm type:\n[0 - (Static) Direct Stiffness / 1 - (Static) Newton Raphson / 2 - (Static) Modified Newton Raphson / 3 - (Static) Modified Spherical Arc Length Method / 4 - (Dynamic) Newmark Implicit Integration Method / 5 - (Dynamic) Nonlinear Newmark Implicit Integration Method]\n>> ")
+elif ((ALGFLAG == 1) and (ANAFLAG == 1)):
+    print "Invalid combination of analysis and solution algorithm type: Static Newton Raphson Method cannot analyze 1st order linear elastic models."
+    ANAFLAG = input("Enter analysis type:\n[1 - 1st order elastic / 2 - 2nd order elastic / 3 - 2nd order inelastic]\n>> ")
+    ALGFLAG = input("Enter solution algorithm type:\n[0 - (Static) Direct Stiffness / 1 - (Static) Newton Raphson / 2 - (Static) Modified Newton Raphson / 3 - (Static) Modified Spherical Arc Length Method / 4 - (Dynamic) Newmark Implicit Integration Method / 5 - (Dynamic) Nonlinear Newmark Implicit Integration Method]\n>> ")
+elif ((ALGFLAG == 2) and (ANAFLAG == 1)):
+    print "Invalid combination of analysis and solution algorithm type: Static Modified Newton Raphson Method cannot analyze 1st order linear elastic models."
+    ANAFLAG = input("Enter analysis type:\n[1 - 1st order elastic / 2 - 2nd order elastic / 3 - 2nd order inelastic]\n>> ")
+    ALGFLAG = input("Enter solution algorithm type:\n[0 - (Static) Direct Stiffness / 1 - (Static) Newton Raphson / 2 - (Static) Modified Newton Raphson / 3 - (Static) Modified Spherical Arc Length Method / 4 - (Dynamic) Newmark Implicit Integration Method / 5 - (Dynamic) Nonlinear Newmark Implicit Integration Method]\n>> ")
+elif ((ALGFLAG == 3) and (ANAFLAG == 1)):
+    print "Invalid combination of analysis and solution algorithm type: Static Modified Spherical Arc Length Method cannot analyze 1st order linear elastic models."
     ANAFLAG = input("Enter analysis type:\n[1 - 1st order elastic / 2 - 2nd order elastic / 3 - 2nd order inelastic]\n>> ")
     ALGFLAG = input("Enter solution algorithm type:\n[0 - (Static) Direct Stiffness / 1 - (Static) Newton Raphson / 2 - (Static) Modified Newton Raphson / 3 - (Static) Modified Spherical Arc Length Method / 4 - (Dynamic) Newmark Implicit Integration Method / 5 - (Dynamic) Nonlinear Newmark Implicit Integration Method]\n>> ")
 
@@ -36,50 +125,15 @@ model_def.write('%d\n' % SLVFLAG)
 OPTFLAG = input("Enter flag for execution of node-renumbering algorithm:\n[1 - No / 2 - Yes]\n>> ")
 model_def.write('%d\n' % OPTFLAG)
 
-#Input CU-BEN.inp
-CUBEN = list(csv.reader(open('CU-BEN.inp', 'rb'), delimiter=','))
-
-#Determine number of joints from .inp file
-var = "*Node"
-line_node = [(index, row.index(var)) for index, row in enumerate(CUBEN) if var in row]
-line_node = line_node[0][0]
-var = "*Element"
-line_elem = [(index, row.index(var)) for index, row in enumerate(CUBEN) if var in row]
-line_elem = line_elem[0][0]
-
-NJ = (line_elem - line_node - 1)
+#Write number of joints to model_def.txt
 model_def.write('%d\n' % NJ)
 
-#Determine number of elements from .inp file for SHELL ONLY
-var = "*Nset"
-line_Nset = [(index, row.index(var)) for index, row in enumerate(CUBEN) if var in row]
-line_Nset1 = line_Nset[0][0]
-line_Nset = [y[0] for y in line_Nset]
-var = "*Elset"
-line_Elset = [(index, row.index(var)) for index, row in enumerate(CUBEN) if var in row]
-line_Elset1 = line_Elset[0][0]
-line_Elset = [y[0] for y in line_Elset]
-
-if line_Nset1 < line_Elset1:
-    NSH = (line_Nset1 - line_elem - 1)
-else:
-    NSH = (line_Elset1 - line_elem - 1)
-
+#Write nuber of shell elements to model_def.txt
 model_def.write('0,0,%d,0,0\n' % NSH)
 
-#Collect SHELL member incidence from *Element, type=S3 in .inp file
-minc = CUBEN[(line_elem + 1):(line_elem + NSH + 1)]
+#Write member incidence to
 for i in range(0, NSH):
     model_def.write('%d,%d,%d\n' % (int(minc[i][1]), int(minc[i][2]), int(minc[i][3])))
-
-var = "** STEP: TimeSteps"
-line_TimeSteps = [(index, row.index(var)) for index, row in enumerate(CUBEN) if var in row]
-line_TimeSteps = line_TimeSteps[0][0]
-var = "*End Step"
-line_EndStep = [(index, row.index(var)) for index, row in enumerate(CUBEN) if var in row]
-line_EndStep = [y[0] for y in line_EndStep]
-end_TimeSteps = [j for j in line_EndStep if j > line_TimeSteps]
-end_TimeSteps = end_TimeSteps[0]
 
 #Collect joint constraints from BC-set and *Boundary in .inp file
 var = "*Boundary"
@@ -122,12 +176,25 @@ for i in range(0,num_Boundary):
     Boundary_length = end_Boundary - line_Boundary[i] - 1
 
     BCset = CUBEN[(line_BCset + 1):(end_BCset)]
-
+    
+    BCset_array = None
 
     for j in range(0,BCset_length):
-        for k in range(0,len(BCset[:][j])):
-            for l in range(0,(Boundary_length)):
-                model_def.write('%d,%d\n' % (int(BCset[j][k]), int(CUBEN[(line_Boundary[i]+1+l)][1])))
+        for k in range(1,len(BCset[:][j])):
+            if BCset[j][k] < BCset[j][k-1]:
+                BCset_array = range(int(BCset[0][0]),int(BCset[j][k-1])+1,int(BCset[j][k]))
+
+    if BCset_array:
+        for j in range(0,len(BCset_array)):
+            for l in range(0,Boundary_length):
+                model_def.write('%d,%d\n' % (int(BCset_array[j]), int(CUBEN[(line_Boundary[i]+1+l)][1])))
+    else:
+        for j in range(0,BCset_length):
+            for k in range(0,len(BCset[:][j])):
+                for l in range(0,Boundary_length):
+                    model_def.write('%d,%d\n' % (int(BCset[j][k]), int(CUBEN[(line_Boundary[i]+1+l)][1])))
+
+    BCset_array = None
 
 #Terminate list in model_def.txt using 0,0
 model_def.write('0,0\n')
@@ -135,7 +202,7 @@ model_def.write('0,0\n')
 #Collect joint coordinates from *Node
 coords = CUBEN[(line_node + 1):(line_elem)]
 for i in range(0, NJ):
-    model_def.write('%f,%f,%f\n' % (float(coords[i][1]), float(coords[i][2]), float(coords[i][3])))
+    model_def.write('%g,%g,%g\n' % (float(coords[i][1]), float(coords[i][2]), float(coords[i][3])))
 
 
 #Collect shell element properties (elastic modulus, Poisson's ratio, thickness, density, maximum allowable yield stress)
@@ -209,10 +276,10 @@ for i in range(0,num_Sections):
                     elemProp[l][4] = float(CUBEN[line_Material+6][0])
 
 for i in range(0, NSH):
-    model_def.write('%f,%f,%f,%f,%f\n' % (float(elemProp[i][0]), float(elemProp[i][1]), float(elemProp[i][2]), float(elemProp[i][3]), float(elemProp[i][4])))
+    model_def.write('%g,%g,%g,%g,%g\n' % (float(elemProp[i][0]), float(elemProp[i][1]), float(elemProp[i][2]), float(elemProp[i][3]), float(elemProp[i][4])))
 
 #Start collecting algorithm specific input variables
-if (ALGFLAG != (4 or 5)): #Static
+if (ALGFLAG < 4): #Static
     
     #Collect load (joint, direction, force) from .inp file
     var = "*Cload"
@@ -265,7 +332,7 @@ if (ALGFLAG != (4 or 5)): #Static
         dLPF = input("Increment of lambda:\n>> ")
         dLPFmax = input("Maximum increment of lambda:\n>> ")
         dLPFmin = input("Minimum increment of lambda:\n>> ")
-        model_def.write('%f,%f,%f,%f,%f\n' % (LPFmax, LPF, dLPF, dLPFmax, dLPFmin))
+        model_def.write('%g,%g,%g,%g,%g\n' % (LPFmax, LPF, dLPF, dLPFmax, dLPFmin))
         print "Enter maximums and minimums on counters:"
         itemax = input("Maximum number of iterations within load increment:\n>> ")
         submax = input("Maximum number of times to step back load due to unconverged solution:\n>> ")
@@ -274,21 +341,21 @@ if (ALGFLAG != (4 or 5)): #Static
     elif ALGFLAG == 3: #(Modified Spherical Arc Length Method)
         print "Enter MSAL parameters:"
         jnum,jdir,dk = map(float, raw_input("Initial prescribed displacement at DOF k:\n[displacement, direction, DOF k]\n>> ").split(','))
-        model_def.write('%f,%f,%f\n' % (jnum,jdir,dk))
+        model_def.write('%g,%g,%g\n' % (jnum,jdir,dk))
         alpha = input("Factor limiting size of load increment:\n>> ")
-        model_def.write('%f\n' % alpha)
+        model_def.write('%g\n' % alpha)
         psi_thresh = input("Threshold to eliminate load control in the arc length criterion in the vicinity of a critical point (A minimum value of 0.1 is recommended):\n>> ")
-        model_def.write('%f\n' % psi_thresh)
+        model_def.write('%g\n' % psi_thresh)
         iteopt = input("Optimum number of iterations (a value of 6 is recommended):\n>> ")
-        model_def.write('%f\n' % iteopt)
+        model_def.write('%g\n' % iteopt)
         lpfmax,dkimax = map(float, raw_input("Maximum lambda and allowable displacment:\n[maximum lambda, allowable displacement]\n>> "))
-        model_def.write('%f,%f\n' % (lpfmax, dkimax))
+        model_def.write('%g,%g\n' % (lpfmax, dkimax))
         print "Enter maximums / minimums on counters:"
         itemax = input("Maximum number of iterations within load increment:\n>> ")
         submax = input("Maximum number of times to step back load due to unconverged solution:\n>> ")
         imagmax = input("Maximum number of times to step back load due to arc length criterion producing imaginary roots:\n>> ")
         negmax = input("maximum number of times to step back load due to arc length criterion producing two negative roots:\n>> ")
-        model_def.write('%f,%f,%f,%f\n' % (itemax, submax, imagmax, negmax))
+        model_def.write('%g,%g,%g,%g\n' % (itemax, submax, imagmax, negmax))
 
 else: #Dynamic
 
@@ -300,7 +367,7 @@ else: #Dynamic
     line_Dynamic = line_Dynamic[0] + 1
     ttot = float(CUBEN[line_Dynamic][1])
     ntstpsinpt = int(round(ttot/float(CUBEN[line_Dynamic][0])))
-    model_def.write('%d,%f\n' % (ntstpsinpt, ttot))
+    model_def.write('%d,%g\n' % (ntstpsinpt, ttot))
             
     #enter reference concentrated load(s) on joints for each time step (in load); i = 0:ntstpsinpt
     #Collect load (joint, direction, force) from .inp file
@@ -310,129 +377,132 @@ else: #Dynamic
     line_Load = [j for j in line_Load if ((j < end_TimeSteps) and (j > line_TimeSteps))]
     num_Load = len(line_Load[:])
     
+    #Determine if Abaqus File contains load history
     var = "*Amplitude"
     line_Amp = [(index, row.index(var)) for index, row in enumerate(CUBEN) if var in row]
-    line_Amp = [y[0] for y in line_Amp]
-    num_Amp = len(line_Amp)
-    if (num_Amp == 1):
-        line_Amp = line_Amp[0]
-        test = [j for j in line_star if j > line_Amp]
-        end_Amp = min(test)
-        Amp_line_length = end_Amp - line_Amp - 1
-    else:
-        for i in range(0,num_Amp):
-            test = [j for j in line_star if j > line_Amp[i]]
-            test = test + [j for j in line_Amp if j > line_Amp[i]]
+    #Determine if Abaqus File contains non-zero initial conditions
+    var = "** STEP: Time0"
+    line_Time0 = [(index, row.index(var)) for index, row in enumerate(CUBEN) if var in row]
+    if line_Amp:
+        line_Amp = [y[0] for y in line_Amp]
+        num_Amp = len(line_Amp)
+        if (num_Amp == 1):
+            line_Amp = line_Amp[0]
+            test = [j for j in line_star if j > line_Amp]
             end_Amp = min(test)
-            Amp_line_length = end_Amp - line_Amp[i] - 1
-            if (Amp_line_length > 1):
-                line_Amp = line_Amp[i]
-                break
+            Amp_line_length = end_Amp - line_Amp - 1
+        else:
+            for i in range(0,num_Amp):
+                test = [j for j in line_star if j > line_Amp[i]]
+                test = test + [j for j in line_Amp if j > line_Amp[i]]
+                end_Amp = min(test)
+                Amp_line_length = end_Amp - line_Amp[i] - 1
+                if (Amp_line_length > 1):
+                    line_Amp = line_Amp[i]
+                    break
     
-    Load_pattern = [0 for x in range(ntstpsinpt+1)]
+        Load_pattern = [0 for x in range(ntstpsinpt+1)]
     
-    for i in range(0,Amp_line_length):
-        for j in range(0, len(CUBEN[:][line_Amp+1+i]),2):
-            k = int(round(float(CUBEN[line_Amp+1+i][j])/(ttot/ntstpsinpt)))
-            Load_pattern[k] = float(CUBEN[line_Amp+1+i][j+1])
+        for i in range(0,Amp_line_length):
+            for j in range(0, len(CUBEN[:][line_Amp+1+i]),2):
+                k = int(round(float(CUBEN[line_Amp+1+i][j])/(ttot/ntstpsinpt)))
+                Load_pattern[k] = float(CUBEN[line_Amp+1+i][j+1])
 
-    for i in range(0,num_Load):
-        Load_name = CUBEN[line_Load[i]+1][0]
-        var = " nset=" + Load_name
-        line_Loadset = [(index, row.index(var)) for index, row in enumerate(CUBEN) if var in row]
-        line_Loadset = line_Loadset[0][0]
+        for i in range(0,num_Load):
+            Load_name = CUBEN[line_Load[i]+1][0]
+            var = " nset=" + Load_name
+            line_Loadset = [(index, row.index(var)) for index, row in enumerate(CUBEN) if var in row]
+            line_Loadset = line_Loadset[0][0]
         
-        test = [j for j in line_Nset if j > line_Loadset]
-        test = test + [j for j in line_Elset if j > line_Loadset]
-        test = test+ [j for j in line_Assembly if j > line_Loadset]
-        end_Loadset = min(test)
+            test = [j for j in line_Nset if j > line_Loadset]
+            test = test + [j for j in line_Elset if j > line_Loadset]
+            test = test+ [j for j in line_Assembly if j > line_Loadset]
+            end_Loadset = min(test)
         
-        Loadset_length = end_Loadset - line_Loadset - 1
+            Loadset_length = end_Loadset - line_Loadset - 1
         
-        test = [j for j in line_star if j > line_Load[i]]
-        name_test = [j for j in line_Load if j > line_Load[i]]
-        for j in range(0,len(name_test)):
-            if CUBEN[name_test[j]-1][0] == Load_name:
-                test = test + [name_test[j]]
-            elif CUBEN[name_test[j]-2][0] == Load_name:
-                test = test + [name_test[j]-1]
-        end_Load = min(test)
-        Load_length = end_Load - line_Load[i] - 1
+            test = [j for j in line_star if j > line_Load[i]]
+            name_test = [j for j in line_Load if j > line_Load[i]]
+            for j in range(0,len(name_test)):
+                if CUBEN[name_test[j]-1][0] == Load_name:
+                    test = test + [name_test[j]]
+                elif CUBEN[name_test[j]-2][0] == Load_name:
+                    test = test + [name_test[j]-1]
+            end_Load = min(test)
+            Load_length = end_Load - line_Load[i] - 1
         
-        Loadset = CUBEN[(line_Loadset + 1):(end_Loadset)]
+            Loadset = CUBEN[(line_Loadset + 1):(end_Loadset)]
         
-        #Collect initial values for load if not equal to 0 at time t=0
-        var = "** STEP: Time0"
-        line_Time0 = [(index, row.index(var)) for index, row in enumerate(CUBEN) if var in row]
-        if line_Time0:
-            line_Time0 = line_Time0[0][0]
-            end_Time0 = [j for j in line_EndStep if j > line_Time0]
-            end_Time0 = end_Time0[0]
-            #Collect load sets, directions, and magnitude for initial loads
-            var = "*Cload"
-            line_LoadInit = [(index, row.index(var)) for index, row in enumerate(CUBEN) if var in row]
-            line_LoadInit = [y[0] for y in line_LoadInit]
-            line_LoadInit = [j for j in line_LoadInit if ((j < end_Time0) and (j > line_Time0))]
-            num_LoadInit = len(line_LoadInit[:])
+            #Collect initial values for load if not equal to 0 at time t=0
+            if line_Time0:
+                line_Time0 = line_Time0[0][0]
+                end_Time0 = [j for j in line_EndStep if j > line_Time0]
+                end_Time0 = end_Time0[0]
+                #Collect load sets, directions, and magnitude for initial loads
+                var = "*Cload"
+                line_LoadInit = [(index, row.index(var)) for index, row in enumerate(CUBEN) if var in row]
+                line_LoadInit = [y[0] for y in line_LoadInit]
+                line_LoadInit = [j for j in line_LoadInit if ((j < end_Time0) and (j > line_Time0))]
+                num_LoadInit = len(line_LoadInit[:])
 
-            for n in range(0,num_LoadInit):
-                LoadInit_name = CUBEN[line_LoadInit[n]+1][0]
-                var = " nset=" + LoadInit_name
-                line_LoadInitset = [(index, row.index(var)) for index, row in enumerate(CUBEN) if var in row]
-                line_LoadInitset = line_LoadInitset[0][0]
+                for n in range(0,num_LoadInit):
+                    LoadInit_name = CUBEN[line_LoadInit[n]+1][0]
+                    var = " nset=" + LoadInit_name
+                    line_LoadInitset = [(index, row.index(var)) for index, row in enumerate(CUBEN) if var in row]
+                    line_LoadInitset = line_LoadInitset[0][0]
         
-                test = [j for j in line_Nset if j > line_LoadInitset]
-                test = test + [j for j in line_Elset if j > line_LoadInitset]
-                test = test+ [j for j in line_Assembly if j > line_LoadInitset]
-                end_LoadInitset = min(test)
+                    test = [j for j in line_Nset if j > line_LoadInitset]
+                    test = test + [j for j in line_Elset if j > line_LoadInitset]
+                    test = test+ [j for j in line_Assembly if j > line_LoadInitset]
+                    end_LoadInitset = min(test)
         
-                LoadInitset_length = end_LoadInitset - line_LoadInitset - 1
+                    LoadInitset_length = end_LoadInitset - line_LoadInitset - 1
         
-                test = [j for j in line_star if j > line_LoadInit[n]]
-                name_test = [j for j in line_Load if j > line_LoadInit[n]]
-                for k in range(0,len(name_test)):
-                    if CUBEN[name_test[k]-1][0] == Load_name:
-                        test = test + [name_test[j]]
-                    elif CUBEN[name_test[k]-2][0] == Load_name:
-                        test = test + [name_test[j]-1]
-                end_LoadInit = min(test)
-                LoadInit_length = end_LoadInit - line_LoadInit[n] - 1
+                    test = [j for j in line_star if j > line_LoadInit[n]]
+                    name_test = [j for j in line_Load if j > line_LoadInit[n]]
+                    for k in range(0,len(name_test)):
+                        if CUBEN[name_test[k]-1][0] == Load_name:
+                            test = test + [name_test[j]]
+                        elif CUBEN[name_test[k]-2][0] == Load_name:
+                            test = test + [name_test[j]-1]
+                    end_LoadInit = min(test)
+                    LoadInit_length = end_LoadInit - line_LoadInit[n] - 1
         
-                LoadInitset = CUBEN[(line_LoadInitset + 1):(end_LoadInitset)]
+                    LoadInitset = CUBEN[(line_LoadInitset + 1):(end_LoadInitset)]
                 
-                LoadInit = [[0 for x in range(3)] for y in range((LoadInitset_length)*(len(LoadInitset[:][0])))]
-                d = 0
-                for a in range(0,LoadInitset_length):
-                    for b in range(0,len(LoadInitset[:][a])):
-                        for c in range(0,LoadInit_length):
-                            LoadInit[d][0] = LoadInitset[a][b]
-                            LoadInit[d][1] = CUBEN[(line_LoadInit[n]+1+c)][1]
-                            LoadInit[d][2] = CUBEN[(line_LoadInit[n]+1+c)][2]
-                            d = d + 1
-                if n == 0:
-                    LoadInit_Total = LoadInit
-                else:
-                    LoadInit_Total = LoadInit_Total + LoadInit
+                    LoadInit = [[0 for x in range(3)] for y in range((LoadInitset_length)*(len(LoadInitset[:][0])))]
+                    d = 0
+                    for a in range(0,LoadInitset_length):
+                        for b in range(0,len(LoadInitset[:][a])):
+                            for c in range(0,LoadInit_length):
+                                LoadInit[d][0] = LoadInitset[a][b]
+                                LoadInit[d][1] = CUBEN[(line_LoadInit[n]+1+c)][1]
+                                LoadInit[d][2] = CUBEN[(line_LoadInit[n]+1+c)][2]
+                                d = d + 1
+                    if n == 0:
+                        LoadInit_Total = LoadInit
+                    else:
+                        LoadInit_Total = LoadInit_Total + LoadInit
 
-        for j in range(0,Loadset_length):
-            for k in range(0,len(Loadset[:][j])):
-                for l in range(0,Load_length):
-                    for m in range(0,ntstpsinpt+1):
-                        if (m == 0):
-                            if not line_Time0:
-                                model_def.write('%d,%d,%f\n' % (int(Loadset[j][k]), int(CUBEN[(line_Load[i]+1+l)][1]), float(CUBEN[(line_Load[i]+1+l)][2])*Load_pattern[m]))
-                            else:
-                                if Loadset[j][k] in [y[0] for y in LoadInit_Total]:
-                                    LoadInit_ind = [(index, row.index(Loadset[j][k])) for index, row in enumerate([y[0] for y in LoadInit_Total]) if Loadset[j][k] in row]
-                                    if len(LoadInit_ind) > 1:
-                                        for n in range(0,len(LoadInit_ind)):
-                                            model_def.write('%d,%d,%f\n' % (int(Loadset[j][k]), int(LoadInit_Total[(LoadInit_ind[n][0])][1]), float(LoadInit_Total[(LoadInit_ind[n][0])][2])))
-                                    else:
-                                        model_def.write('%d,%d,%f\n' % (int(Loadset[j][k]), int(LoadInit_Total[(LoadInit_ind[0][0])][1]), float(LoadInit_Total[(LoadInit_ind[0][0])][2])))
+            for j in range(0,Loadset_length):
+                for k in range(0,len(Loadset[:][j])):
+                    for l in range(0,Load_length):
+                        for m in range(0,ntstpsinpt+1):
+                            if (m == 0):
+                                if not line_Time0:
+                                    model_def.write('%d,%d,%g\n' % (int(Loadset[j][k]), int(CUBEN[(line_Load[i]+1+l)][1]), float(CUBEN[(line_Load[i]+1+l)][2])*Load_pattern[m]))
                                 else:
-                                    model_def.write('%d,%d,%f\n' % (int(Loadset[j][k]), int(CUBEN[(line_Load[i]+1+l)][1]), float(CUBEN[(line_Load[i]+1+l)][2])*Load_pattern[m]))
-                        else:
-                            model_def.write('%d,%d,%f\n' % (int(Loadset[j][k]), int(CUBEN[(line_Load[i]+1+l)][1]), float(CUBEN[(line_Load[i]+1+l)][2])*Load_pattern[m]))
+                                    if Loadset[j][k] in [y[0] for y in LoadInit_Total]:
+                                        LoadInit_ind = [(index, row.index(Loadset[j][k])) for index, row in enumerate([y[0] for y in LoadInit_Total]) if Loadset[j][k] in row]
+                                        if len(LoadInit_ind) > 1:
+                                            for n in range(0,len(LoadInit_ind)):
+                                                model_def.write('%d,%d,%g\n' % (int(Loadset[j][k]), int(LoadInit_Total[(LoadInit_ind[n][0])][1]), float(LoadInit_Total[(LoadInit_ind[n][0])][2])))
+                                        else:
+                                            model_def.write('%d,%d,%g\n' % (int(Loadset[j][k]), int(LoadInit_Total[(LoadInit_ind[0][0])][1]), float(LoadInit_Total[(LoadInit_ind[0][0])][2])))
+                                    else:
+                                        model_def.write('%d,%d,%g\n' % (int(Loadset[j][k]), int(CUBEN[(line_Load[i]+1+l)][1]), float(CUBEN[(line_Load[i]+1+l)][2])*Load_pattern[m]))
+                            else:
+                                model_def.write('%d,%d,%g\n' % (int(Loadset[j][k]), int(CUBEN[(line_Load[i]+1+l)][1]), float(CUBEN[(line_Load[i]+1+l)][2])*Load_pattern[m]))
     
     #Terminate list in model_def.txt using 0,0,0
     model_def.write('0,0,0\n')
@@ -529,23 +599,33 @@ else: #Dynamic
 
         for i in range(0,len(BoundaryInit_Final)):
             if (BoundaryInit_Final[i][0] != 0):
-                model_def.write('%d,%d,%f,%f,%f\n' % (BoundaryInit_Final[i][0], BoundaryInit_Final[i][1], BoundaryInit_Final[i][2], BoundaryInit_Final[i][3], BoundaryInit_Final[i][4]))
+                model_def.write('%d,%d,%g,%g,%g\n' % (BoundaryInit_Final[i][0], BoundaryInit_Final[i][1], BoundaryInit_Final[i][2], BoundaryInit_Final[i][3], BoundaryInit_Final[i][4]))
 
     #Terminate list in model_def.txt using 0,0,0,0,0
     model_def.write('0,0,0,0,0\n')
 
-    alpha,delta = map(float, raw_input("Enter integration constants for Newmark time integration scheme:\n[alpha, delta]\n>> ").split(','))
+    numopt = input("Enter numerical damping scheme:\n[0 - none / 1 - Generalized-alpha / 2 - HHT method / 3 - WBZ method]\n>> ")
+    if numopt > 0:
+        spectrds = input("Spectral Radius:\n>> ")
+    else:
+        spectrds = 1
 
-    if (delta < 0.5):
-        print "Invalid value for delta: delta must be greater than 0.5."
-        delta = input("Enter delta integration constant for Newmark time integration scheme:\n>> ")
-    if (alpha < (0.25*((0.5 + delta) ** 2))):
-        alpha_try = 0.25*((0.5 + delta) ** 2)
-        print "Invalid value for alpha: try %f or greater for alpha." % (alpha_try)
-        alpha = input("Enter alpha integration constant for Newmark time integration scheme:\n>> ")
-    model_def.write('%f,%f\n' % (alpha, delta))
+    if (spectrds < 0):
+        print "Invalid value for spectral radius: cannot be less than 0."
+        spectrds = input("Enter spectral radius:\n>> ")
+    if (spectrds > 1):
+        print "Invalid value for spectral radius: cannot be greater than 1."
+        spectrds = input("Enter spectral radius:\n>> ")
+    model_def.write('%d,%g\n' % (numopt,spectrds))
 
     if ALGFLAG == 5: #(Nonlinear Newmark Implicit Integration Method)
+        print "Enter load proportionality factor parameters:"
+        LPFmax = input("Maximum lambda:\n>> ")
+        LPF = input("Initial lambda:\n>> ")
+        dLPF = input("Increment of lambda:\n>> ")
+        dLPFmax = input("Maximum increment of lambda:\n>> ")
+        dLPFmin = input("Minimum increment of lambda:\n>> ")
+        model_def.write('%g,%g,%g,%g,%g\n' % (LPFmax, LPF, dLPF, dLPFmax, dLPFmin))
         print "Enter maximums and minimums on counters:"
         itemax = input("Maximum number of iterations within load increment:\n>> ")
         submax = input ("Maximum number of times to step back load due to unconverged solution:\n>> ")
@@ -554,7 +634,7 @@ else: #Dynamic
                        
 #Enter tolerances on out-of-balance displacements, forces, and energy
 if ANAFLAG == 1:
-    model_def.write('0.001,0.001,0.001\n')
+    model_def.write('0.001,0.001,0.001')
 else:
     dtol,ftol,etol = map(float, raw_input("Enter Tolerances on Out-of-Balance Displacements, Forces, and Energy:\n[displacement tolerance, force tolerance, energy tolerance]\n>> ").split(','))
-    model_def.write('%f,%f,%f' % (dtol, ftol, etol))
+    model_def.write('%g,%g,%g' % (dtol, ftol, etol))

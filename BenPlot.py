@@ -1,4 +1,4 @@
-#Beta version, Justyna Kosianka 7/25/15
+#Beta version, Justyna Kosianka 1/04/18
 
 import csv
 import matplotlib.pyplot as plt
