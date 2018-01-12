@@ -182,7 +182,7 @@ int solve (long *pjcode, double *pss, double *pss_fsi, double *psm, double *psm_
                 }
             }
         }
-
+        
         if (NPDB == 0) {
             // Factorize Keff
             if (SLVFLAG == 0) {
@@ -704,42 +704,65 @@ int skymult (long *pmaxa, double *pss_temp, double *pdd, double *pddn)
 
 int matpart (long *pmaxa, long *pkht, double *pss, double *pqtot, double *puc, int *pii, int *pij)
 {
-    int i, j, k;
     
-    long kl, ku, kk;
+    // Initialize function variables
+    long i, j, n, kl, ku, kh, k, kk;
     
-    for (i = 0; i < NPDB; ++i) {
-        // Rearrange the matrix such that the known terms in the lower triangle
-        // of the matrix are on the rhs
-        for (k = 0; k < NEQ-NPDB; ++k) {
-            // Search for known terms in each row of the interior dofs
-            if (*(pii+k)-(*(pkht+(*(pii+k)))) <= *(pij+i) && *(pii+k) > *(pij+i)) {
-                kl = (*(pmaxa+(*(pii+k))+1));
-                ku = (*(pij+i))-(*(pii+k))+(*(pkht+(*(pii+k))))+1;
-                kk = kl-ku;
-                *(pqtot + (*(pii+k))) -= (*(pss+kk-1))*(*(puc+(*(pij+i))));
-                *(pss+kk-1) = 0;
-            }
-        }
-        
-        // Rearrange the matrix such that the known terms in the upper triangle
-        // of the matrix are on the rhs
-        for (j = 0; j <= *(pkht+*(pij+i)); ++j) {
-            kk = *(pmaxa+(*(pij+i)))-1+j;
-            if (j != 0) {
-                for (k = 0; k < NPDB-1; ++k) {
-                    if ((*(pij+i))-j != *(pij+k)){
-                        *(pqtot+(*(pij+i))-j) -= (*(pss+kk))*(*(puc+(*(pij+i))));
+    // Modify the upper triangle of the stiffness matrix
+    n = *(pij+NPDB-1)+1;
+    for (i = 1; i <= NPDB; ++i) {
+        kl = *(pmaxa+n-1) + 1;
+        ku = *(pmaxa+n) - 1;
+        kh = ku - kl;
+        if (kh >= 0) {
+            k = n-1;
+            for (kk = kl; kk <= ku; ++kk) {
+                k--;
+                for (j = 0; j < NPDB; ++j) {
+                    if (k != *(pij+j) && *(pij+j) <= k) {
+                        *(pqtot+k) -= (*(pss+kk-1))*(*(puc+n-1));
+                        *(pss+kk-1) = 0;
+                    } else if (k == *(pij+j) && *(pij+j) <= k) {
+                        *(pss+kk-1) = 0;
                     }
-                    *(pss+kk) = 0;
                 }
-            } else if (j == 0) {
-                *(pss+kk) = 1;
             }
         }
+        n = *(pij+NPDB-1-i)+1;
+    }
+    
+    // Modify the diagonal of the stiffness matrix
+    for (n = 0; n < NPDB; ++n) {
+        k = *(pmaxa+ (*(pij+n)));
+        *(pss+k-1) = 1;
+    }
+    
+    // Modify the lower triangle of the stiffness matrix
+    n = *(pii+NEQ-NPDB-1)+1;
+    for (i = 1; i <= NEQ-NPDB; ++i) {
+        kl = *(pmaxa+n-1) + 1;
+        ku = *(pmaxa+n) - 1;
+        kh = ku - kl;
+        if (kh >= 0) {
+            k = n;
+            for (kk = kl; kk <= ku; ++kk) {
+                k--;
+                for (j = 0; j < NPDB; ++j) {
+                    if (k-1 == *(pij+j)) {
+                        *(pqtot+n-1) -= (*(pss+kk-1))*(*(puc+k-1));
+                        *(pss+kk-1) = 0;
+                    }
+                }
+            }
+        }
+        n = *(pii+NEQ-NPDB-1-i)+1;
     }
     
     return 0;
 }
+
+
+
+
 
 

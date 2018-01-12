@@ -3309,10 +3309,6 @@ int main (int argc, char **argv)
                 fprintf(IFP[1], "%d,%d,%d\n", itemax, submax, solmin);
             }
             
-            if (NPDB > 0 && tolforc != 1 ) {
-                tolforc = 1;
-            }
-            
             if (numopt == 0 && spectrds != 1) {
                 fprintf(OFP[0], "\n***ERROR*** Invalid spectral radius value for Newmark");
                 fprintf(OFP[0], "  analysis without numerical dissipation.\n");
@@ -3685,6 +3681,28 @@ int main (int argc, char **argv)
                                 intener1 = 0;
                                 for (i = 0; i < NEQ; ++i) {
                                     intener1 += dd[i] * (dyn[i] - fp[i]);
+                                }
+                            }
+                            
+                            if (NPDB > 0) {
+                                // Modify internal forces at the prescribed displacement nodes
+                                if (SLVFLAG == 0) {
+                                    for (i = 0; i < NEQ; ++i){
+                                        if (pmot[i] != 0) {
+                                            f_temp[i] = -sm[i]*ac_i[i];
+                                        }
+                                    }
+                                }
+                                else if (SLVFLAG == 1) { // using CLAPACK solver
+                                    for (i = 0; i < NEQ; ++i) {
+                                        sum = 0;
+                                        if (pmot[i] != 0) {
+                                            for (j = 0; j < NEQ; ++j) {
+                                                sum += sm[i*NEQ+j];
+                                            }
+                                            f_temp[i] = -sum*ac_i[i];
+                                        }
+                                    }
                                 }
                             }
                             
