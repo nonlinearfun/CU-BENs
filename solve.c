@@ -60,7 +60,7 @@
 // CLAPACK header files
 #include <Accelerate/Accelerate.h>
 
-extern long NJ, SNDOF, FNDOF, NEQ, NPDB, NTSTPS, NE_SBR, NE_FBR;
+extern long NJ, SNDOF, FNDOF, NEQ, NBC, NTSTPS, NE_SBR, NE_FBR;
 extern double dt, ttot;
 extern int ANAFLAG, ALGFLAG, SLVFLAG, FSIFLAG, brFSI_FLAG, shFSI_FLAG, CHKPT, RFLAG;
 extern FILE *IFP[4], *OFP[8];
@@ -137,6 +137,23 @@ int solve (long *pjcode, double *pss, double *pss_fsi, double *psm, double *psm_
             }
         }
         
+        // Add masses to nodes subjected to nonzero displacement boundary conditions
+        if (NBC != 0 && SLVFLAG == 0){
+            for (i = 0; i < NEQ; ++i) {
+                if ((*(ppdisp+i*NTSTPS+tstp)) != 0) {
+                    *(psm+i) = 1000000 * (*(psm+i));
+                }
+            }
+        } else if (NBC != 0 && SLVFLAG == 1) {
+            for (i = 0; i < NEQ; ++i) {
+                for (j = 0; j < NEQ; ++j) {
+                    if ((*(ppdisp+i*NTSTPS+tstp)) != 0) {
+                        *(psm+i) = 1000000 * (*(psm+i*NEQ+j));
+                    }
+                }
+            }
+        }
+        
         alpha = pow(1-alpham+alphaf, 2)/4;
         delta = 0.5-alpham+alphaf;
         dt_temp = ddt * dt;
@@ -183,7 +200,7 @@ int solve (long *pjcode, double *pss, double *pss_fsi, double *psm, double *psm_
             }
         }
         
-        if (NPDB == 0) {
+        if (NBC == 0) {
             // Factorize Keff
             if (SLVFLAG == 0) {
                 skyfact(pmaxa, pKeff, pssd, pdd, fact, pdet);
@@ -199,12 +216,6 @@ int solve (long *pjcode, double *pss, double *pss_fsi, double *psm, double *psm_
             // Initialize a copy of effective stiffness matrix for prescribed displacement matrix computation
             double *pKeffcp = alloc_dbl (*(pmaxa+NEQ)-1);
             if (pKeffcp == NULL) {
-                // Pass control to closeio function
-                return closeio(1);
-            }
-            // Initialize a dummy variable to temporarily store the product of matvec operations
-            double *pddn = alloc_dbl (NEQ);
-            if (pddn == NULL) {
                 // Pass control to closeio function
                 return closeio(1);
             }
@@ -302,12 +313,8 @@ int solve (long *pjcode, double *pss, double *pss_fsi, double *psm, double *psm_
                 
                 // Calculate static force vector if generalized-alpha method applied
                 if (alphaf != 0){
-                    for (i = 0; i < NEQ; ++i) {
-                        *(pddn+i)=0;
-                    }
-                    
                     if(ANAFLAG != 4 && SLVFLAG == 0){// Non-FSI analysis, using skyline function
-                        skymult (pmaxa, pss, pdd, pddn);
+                        skymult (pmaxa, pss, pdd);
                     } else if (ANAFLAG == 4 || SLVFLAG == 1){// FSI analysis, cannot use skyline function
                         double beta, gamma;
                         int incx, incy;
@@ -315,20 +322,21 @@ int solve (long *pjcode, double *pss, double *pss_fsi, double *psm, double *psm_
                         beta = 1;
                         gamma = 0;
                         
-                        cblas_dgemv(CblasRowMajor, CblasNoTrans, m, n, beta, pss, lda, pdd, incx, gamma, pddn, incy);
+                        cblas_dgemv(CblasRowMajor, CblasNoTrans, m, n, beta, pss, lda, pdd, incx, gamma, pdd, incy);
                     }
                     for (i = 0; i < NEQ; ++i) {
-                        *(pReff+i) -= alphaf/(1-alphaf)*(*(pddn+i));
+                        *(pReff+i) -= alphaf/(1-alphaf)*(*(pdd+i));
                     }
                 }
                 
                 // Solve for displacements at current time step
-                if (NPDB > 0) {
+                if (NBC != 0) {
                     for (i = 0; i < *(pmaxa+NEQ)-1; ++i) {
                         *(pKeffcp+i) = *(pKeff+i);
                     }
                     
                     for (i = 0; i < NEQ; ++i) {
+                        *(pdd+i) = *(pr+i);
                         if (*(ppdisp+i*NTSTPS+k) != 0) {
                             *(pReff+i) = *(ppdisp+i*NTSTPS+k);
                         }
@@ -412,10 +420,6 @@ int solve (long *pjcode, double *pss, double *pss_fsi, double *psm, double *psm_
                 free (pKeffcp);
                 pKeffcp = NULL;
             }
-            if (pddn != NULL) {
-                free (pddn);
-                pddn = NULL;
-            }
             
         } else if (ALGFLAG == 5){ //Dynamic: nonlinear Newmark Intergration Method
             
@@ -452,7 +456,7 @@ int solve (long *pjcode, double *pss, double *pss_fsi, double *psm, double *psm_
                 }
             }
             
-            if (NPDB > 0) {
+            if (NBC != 0) {
                 // Pass residual array to the incremental displacements array
                 for (i = 0; i < NEQ; ++i) {
                     *(pdd+i) = *(pr+i);
@@ -648,12 +652,16 @@ int skysolve (long *pmaxa, double *pss_temp, double *pssd, double *pdd, int fact
     return 0;
 }
 
-int skymult (long *pmaxa, double *pss_temp, double *pdd, double *pddn)
+int skymult (long *pmaxa, double *pss_temp, double *pdd)
 {
     
     // Initialize function variables
     long i, n, kl, ku, kh, k, kk;
-    double c;
+    double c, ddn[NEQ];
+    
+    for (i = 0; i < NEQ; ++i) {
+        ddn[i]=0;
+    }
     
     //Compute the product of the upper triangle in the stiffness matrix and the displacement vector
     n = NEQ;
@@ -665,7 +673,7 @@ int skymult (long *pmaxa, double *pss_temp, double *pdd, double *pddn)
             k = n;
             for (kk = kl; kk <= ku; ++kk) {
                 k--;
-                *(pddn+k-1) += *(pss_temp+kk-1) * (*(pdd+n-1));
+                ddn[k-1] += *(pss_temp+kk-1) * (*(pdd+n-1));
             }
         }
         n--;
@@ -674,7 +682,7 @@ int skymult (long *pmaxa, double *pss_temp, double *pdd, double *pddn)
     // Compute product of the diagonal in the stiffness matrix and the displacement vector
     for (n = 0; n < NEQ; ++n) {
         k = *(pmaxa+n);
-        *(pddn+n) += (*(pdd+n))*(*(pss_temp+k-1));
+        ddn[n] += (*(pdd+n))*(*(pss_temp+k-1));
     }
     
     //Compute product of the lower triangle in the stiffness matrix and the displacement vector
@@ -690,13 +698,13 @@ int skymult (long *pmaxa, double *pss_temp, double *pdd, double *pddn)
                 k--;
                 c += *(pss_temp+kk-1) * (*(pdd+k-1));
             }
-            *(pddn+n-1) += c;
+            ddn[n-1] += c;
         }
         n--;
     }
     
     for (i = 0; i < NEQ; ++i) {
-        *(pdd+i) = *(pddn+i);
+        *(pdd+i) = ddn[i];
     }
     
     return 0;
@@ -709,8 +717,8 @@ int matpart (long *pmaxa, long *pkht, double *pss, double *pqtot, double *puc, i
     long i, j, n, kl, ku, kh, k, kk;
     
     // Modify the upper triangle of the stiffness matrix
-    n = *(pij+NPDB-1)+1;
-    for (i = 1; i <= NPDB; ++i) {
+    n = *(pij+NBC-1)+1;
+    for (i = 1; i <= NBC; ++i) {
         kl = *(pmaxa+n-1) + 1;
         ku = *(pmaxa+n) - 1;
         kh = ku - kl;
@@ -718,7 +726,7 @@ int matpart (long *pmaxa, long *pkht, double *pss, double *pqtot, double *puc, i
             k = n-1;
             for (kk = kl; kk <= ku; ++kk) {
                 k--;
-                for (j = 0; j < NPDB; ++j) {
+                for (j = 0; j < NBC; ++j) {
                     if (k != *(pij+j) && *(pij+j) <= k) {
                         *(pqtot+k) -= (*(pss+kk-1))*(*(puc+n-1));
                         *(pss+kk-1) = 0;
@@ -728,18 +736,18 @@ int matpart (long *pmaxa, long *pkht, double *pss, double *pqtot, double *puc, i
                 }
             }
         }
-        n = *(pij+NPDB-1-i)+1;
+        n = *(pij+NBC-1-i)+1;
     }
     
     // Modify the diagonal of the stiffness matrix
-    for (n = 0; n < NPDB; ++n) {
+    for (n = 0; n < NBC; ++n) {
         k = *(pmaxa+ (*(pij+n)));
         *(pss+k-1) = 1;
     }
     
     // Modify the lower triangle of the stiffness matrix
-    n = *(pii+NEQ-NPDB-1)+1;
-    for (i = 1; i <= NEQ-NPDB; ++i) {
+    n = *(pii+NEQ-NBC-1)+1;
+    for (i = 1; i <= NEQ-NBC; ++i) {
         kl = *(pmaxa+n-1) + 1;
         ku = *(pmaxa+n) - 1;
         kh = ku - kl;
@@ -747,7 +755,7 @@ int matpart (long *pmaxa, long *pkht, double *pss, double *pqtot, double *puc, i
             k = n;
             for (kk = kl; kk <= ku; ++kk) {
                 k--;
-                for (j = 0; j < NPDB; ++j) {
+                for (j = 0; j < NBC; ++j) {
                     if (k-1 == *(pij+j)) {
                         *(pqtot+n-1) -= (*(pss+kk-1))*(*(puc+k-1));
                         *(pss+kk-1) = 0;
@@ -755,7 +763,7 @@ int matpart (long *pmaxa, long *pkht, double *pss, double *pqtot, double *puc, i
                 }
             }
         }
-        n = *(pii+NEQ-NPDB-1-i)+1;
+        n = *(pii+NEQ-NBC-1-i)+1;
     }
     
     return 0;

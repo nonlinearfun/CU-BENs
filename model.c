@@ -57,7 +57,7 @@
 #include <math.h>
 #include "prototypes.h"
 
-extern long NJ, NE_TR, NE_FR, NE_SH, NE_SBR, NE_FBR, NEQ, NPDB, SNDOF, FNDOF, NTSTPS, ntstpsinpt;
+extern long NJ, NE_TR, NE_FR, NE_SH, NE_SBR, NE_FBR, NEQ, NBC, SNDOF, FNDOF, NTSTPS, ntstpsinpt;
 extern double dt, ttot;
 extern int ANAFLAG, ALGFLAG, OPTFLAG, SLVFLAG, FSIFLAG, FSIINCFLAG, brFSI_FLAG, shFSI_FLAG;
 extern FILE *IFP[4], *OFP[8];
@@ -1176,8 +1176,7 @@ int skylin (long *pmaxa, long *pmcode, long *plss, long *pjcode, long *pkht, lon
 {
     
     long i, j, k, min, ptr; // Initialize function variables
-    NPDB = 0;
-    
+    NBC = 0;
     
     for (i = 0; i < NEQ; ++i) {
         *(ppmot+i) = 0;
@@ -1191,32 +1190,32 @@ int skylin (long *pmaxa, long *pmcode, long *plss, long *pjcode, long *pkht, lon
             if ( j != 0 ) {
                 switch (k) {
                     case 1:
-                        NPDB++;
+                        NBC++;
                         fscanf(IFP[0], "\n");
                         *(ppmot+(*(pjcode+(j-1)*7+(k-1)))-1) = 1;
                         break;
                     case 2:
-                        NPDB++;
+                        NBC++;
                         fscanf(IFP[0], "\n");
                         *(ppmot+(*(pjcode+(j-1)*7+(k-1)))-1) = 1;
                         break;
                     case 3:
-                        NPDB++;
+                        NBC++;
                         fscanf(IFP[0], "\n");
                         *(ppmot+(*(pjcode+(j-1)*7+(k-1)))-1) = 1;
                         break;
                     case 4:
-                        NPDB++;
+                        NBC++;
                         fscanf(IFP[0], "\n");
                         *(ppmot+(*(pjcode+(j-1)*7+(k-1)))-1) = 1;
                         break;
                     case 5:
-                        NPDB++;
+                        NBC++;
                         fscanf(IFP[0], "\n");
                         *(ppmot+(*(pjcode+(j-1)*7+(k-1)))-1) = 1;
                         break;
                     case 6:
-                        NPDB++;
+                        NBC++;
                         fscanf(IFP[0], "\n");
                         *(ppmot+(*(pjcode+(j-1)*7+(k-1)))-1) = 1;
                         break;
@@ -1551,6 +1550,7 @@ int load (double *pq, double *pefFE_ref, double *px, double *pllength, double *p
         for (i = 0; i < NEQ; ++i) {
             for (j = 0; j < ntstpsinpt; ++j) {
                 *(ppinpt+i*ntstpsinpt+j) = 0;
+                *(ppdisp+i*ntstpsinpt+j) = 0;
             }
         }
         
@@ -1620,6 +1620,9 @@ int load (double *pq, double *pefFE_ref, double *px, double *pllength, double *p
                     case (0):
                         break;
                     default:
+                        if (d == 0){
+                            d = 0.000000000000000000000000000001;
+                        }
                         *(ppdisp+(ks-1)*ntstpsinpt+i) = d; //store initial displ supports
                         break;
                 }

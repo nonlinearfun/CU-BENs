@@ -328,9 +328,8 @@
  toldisp,tolforc,tolener
  */
 
-// Number of joints, number of truss, frame, and shell elements, and number of equations
-long NJ, NE_TR, NE_FR, NE_SH, NE_SBR, NE_FBR, NE_BR, NEQ, SNDOF, FNDOF, NTSTPS, ntstpsinpt;
-long NPDB;
+// Number of joints, number of truss, frame, and shell elements, and number of equations, and number of nonzero boundary conditions
+long NJ, NE_TR, NE_FR, NE_SH, NE_SBR, NE_FBR, NE_BR, NEQ, NBC, SNDOF, FNDOF, NTSTPS, ntstpsinpt;
 double dt, ttot; // Number of prescribed displacement boundaries
 // "666" is an unlikely mistake; initialization allows for assumption of empty input file
 int ANAFLAG = 666, ALGFLAG, OPTFLAG, SLVFLAG, FSIFLAG, FSIINCFLAG, brFSI_FLAG, shFSI_FLAG;
@@ -1166,13 +1165,13 @@ int main (int argc, char **argv)
     }
     p2p2l[nl] = pmot;
     nl++;
-    int *ii = alloc_int (NEQ-NPDB);
+    int *ii = alloc_int (NEQ-NBC);
     if (ii == NULL) {
         goto EXIT2;
     }
     p2p2i[ni] = ii;
     ni++;
-    int *ij = alloc_int (NPDB);
+    int *ij = alloc_int (NBC);
     if (ij == NULL) {
         goto EXIT2;
     }
@@ -3525,7 +3524,7 @@ int main (int argc, char **argv)
                             // Apply prescribed displacement boundary conditions
                             for (i = 0; i < NEQ; ++i) {
                                 if (pdisp[i*NTSTPS+k] != 0) {
-                                    uc_i[i] = pdisp[i*NTSTPS+k]-um[i];
+                                    uc_i[i] = (pdisp[i*NTSTPS+k]-um[i])*sub_dt*lpf;
                                 }
                             }
                             
@@ -3684,8 +3683,8 @@ int main (int argc, char **argv)
                                 }
                             }
                             
-                            if (NPDB > 0) {
-                                // Modify internal forces at the prescribed displacement nodes
+                            // Correct internal forces at nodes subjected to nonzero displacement boundary conditions
+                            if (NBC != 0) {
                                 if (SLVFLAG == 0) {
                                     for (i = 0; i < NEQ; ++i){
                                         if (pmot[i] != 0) {

@@ -344,7 +344,7 @@ int skyfact (long *pmaxa, double *pss_temp, double *pssd, double *pdd, int fact,
 int skysolve (long *pmaxa, double *pss, double *pssd, double *pdd, int fact, int *pdet);
 
 /*This function solves for b in Ax=b*/
-int skymult (long *pmaxa, double *pss_temp, double *pdd, double *pddn);
+int skymult (long *pmaxa, double *pss_temp, double *pdd);
 
 /*This function partitions matrix A into interior dofs and boundary dofs for solving systems with prescribed displacement boundary conditions*/
 int matpart (long *pmaxa, long *pkht, double *pss, double *pqtot, double *puc, int *pii, int *pij);
