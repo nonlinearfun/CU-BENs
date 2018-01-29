@@ -96,10 +96,10 @@ void codes (long *pmcode, long *pjcode, long *pminc, int *pwrpres);
    element (fr) on which it is applied */
 int load (double *pq, double *pefFE_ref, double *px, double *pllength, double *poffset,
 		  int *posflag, double *pc1, double *pc2, double *pc3, long *pjnt, long *pmcode, long *pjcode, 
-		  long *pminc, double *ptinpt, double *ppinpt, double *pdinpt, double *pum, double *pvm, double *pam);
+		  long *pminc, double *ptinpt, double *ppinpt, double *pdinpt, double *ppdisp, double *pum, double *pvm, double *pam);
 
 // This function determines kht using mcode, and determines maxa from kht
-int skylin (long *pmaxa, long *pmcode, long *plss);
+int skylin (long *pmaxa, long *pmcode, long *plss, long *pjcode, long *pkht, long *ppmot);
 
 /*
 truss.c
@@ -335,7 +335,7 @@ solve.c
    (Bathe 1976, p. 257) */
 int solve (long *pjcode_fsi, double *pss, double *pss_fsi, double *psm, double *psm_fsi, double *psd_fsi, double *pr, double *pdd, long *pmaxa, double *pssd, int *pdet,
 		   double *pum, double *pvm, double *pam, double *puc, double *pvc, double *pac, double *pqdyn, double *ptstps, 
-		   double *pKeff, double *pReff, double *pMeff, double alpham, double alphaf, int *pipiv, int fact, double ddt);
+		   double *pKeff, double *pReff, double *pMeff, double alpham, double alphaf, int *pipiv, int fact, double ddt, double *ppdisp, long *pkht, int *piter, int *pii, int *pij, int tstp);
 
 /* This function performs LDL^t factorization of the stiffness matrix when using SLVFLAG == 0*/
 int skyfact (long *pmaxa, double *pss_temp, double *pssd, double *pdd, int fact, int *pdet);
@@ -344,7 +344,10 @@ int skyfact (long *pmaxa, double *pss_temp, double *pssd, double *pdd, int fact,
 int skysolve (long *pmaxa, double *pss, double *pssd, double *pdd, int fact, int *pdet);
 
 /*This function solves for b in Ax=b*/
-int skymult (long *pmaxa, double *pss_temp, double *pssd, double *pdd, int fact, int *pdet);
+int skymult (long *pmaxa, double *pss_temp, double *pdd);
+
+/*This function partitions matrix A into interior dofs and boundary dofs for solving systems with prescribed displacement boundary conditions*/
+int matpart (long *pmaxa, long *pkht, double *pss, double *pqtot, double *puc, int *pii, int *pij);
 
 /*
 arc.c
@@ -393,6 +396,18 @@ void output (double *plpf, int *pitecnt, double *pd, double *pef, int flag);
 
 // This function closes the input and output files
 int closeio (int flag);
+
+// This function periodically backs up information for nonlinear dynamic analysis in the event of power outrages or hardware failures
+void checkPoint(long tstep, long lss, double *puc, double *pvc, double *pac, double *pss, double *psm, double *pd,
+                double *pf, double *pef, double *px, double *pc1, double *pc2, double *pc3, double *pdefllen,
+                double *pllength, double *pefFE, double *pxfr, int *pyldflag, double *pdeffarea, double *pdefslen,
+                double *pchi, double *pefN, double *pefM);
+
+// The function restores the last saved data before power outrages or hardware failures
+void restartStep(long lss, double *puc, double *pvc, double *pac, double *pss, double *psm, double *pd,
+                 double *pf, double *pef, double *px, double *pc1, double *pc2, double *pc3, double *pdefllen,
+                 double *pllength, double *pefFE, double *pxfr, int *pyldflag, double *pdeffarea, double *pdefslen,
+                 double *pchi, double *pefN, double *pefM);
 
 /*
 memory.c

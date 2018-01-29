@@ -62,7 +62,7 @@
 extern long NJ, NE_TR, NE_FR, NE_SH, NE_SBR, NE_FBR, NEQ, SNDOF, FNDOF, NTSTPS, ntstpsinpt;
 extern double dt, ttot;
 extern int ANAFLAG, ALGFLAG, OPTFLAG, SLVFLAG, brFSI_FLAG, shFSI_FLAG;
-extern FILE *IFP[2], *OFP[7];
+extern FILE *IFP[4], *OFP[8];
 
 void prop_fsi (double *px, double *pemod, double *pnu, double *pdens, double *pfdens, double *pbmod,
 			  double *pfarea, 

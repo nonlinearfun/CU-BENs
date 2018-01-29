@@ -61,7 +61,7 @@
 
 extern long NJ, NE_TR, NE_FR, NEQ;
 extern int ANAFLAG, ALGFLAG, OPTFLAG, SLVFLAG;
-extern FILE *IFP[2], *OFP[5];
+extern FILE *IFP[4], *OFP[8];
 
 void prop_fr (double *px, double *pxfr, double *pemod, double *pgmod, double *pdens, double *poffset,
     int *posflag, double *pauxpt, double *pcarea, double *pllength, double *pistrong,
