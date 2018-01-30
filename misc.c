@@ -59,7 +59,7 @@
 
 extern long NJ, NE_TR, NE_FR, NE_SH, NEQ;
 extern int ANAFLAG, ALGFLAG, OPTFLAG;
-extern FILE *IFP[2], *OFP[7];
+extern FILE *IFP[4], *OFP[8];
 
 void transform (double *pk, double *pT, double *pK, int n)
 {
@@ -511,4 +511,229 @@ int closeio (int flag)
         }
     }
     return 0;
+}
+
+
+void checkPoint(long tstep, long lss, double *puc, double *pvc, double *pac, double *pss, double *psm, double *pd,
+                double *pf, double *pef, double *px, double *pc1, double *pc2, double *pc3, double *pdefllen,
+                double *pllength, double *pefFE, double *pxfr, int *pyldflag, double *pdeffarea, double *pdefslen,
+                double *pchi, double *pefN, double *pefM)
+{
+    char file[20];
+    int i, j;
+    
+    if (ALGFLAG == 5){
+        
+        sprintf(file, "results8.txt");
+        do {
+            OFP[7] = fopen(file, "w"); // Open output file for writing
+        } while (OFP[7] == 0);
+        
+        // Print the time step of occurrence
+        fprintf(OFP[7], "%ld\n", tstep);
+        
+        // Print displacements, velocities, and accelerations
+        for (i = 0; i < NEQ; ++i){
+            fprintf(OFP[7], "%e,%e,%e\n", *(puc+i), *(pvc+i), *(pac+i));
+        }
+        
+        // Signal the end of displacements, velocities, and accelerations
+        fprintf (OFP[7], "%d,%d,%d\n", 0, 0, 0);
+        
+        // Print stiffness and mass matrices
+        for (i = 0; i < lss; ++i) {
+            fprintf(OFP[7], "%e,%e\n", *(pss+i), *(psm+i));
+        }
+        
+        // Signal the end of stiffness and mass matrices
+        fprintf (OFP[7], "%d,%d\n", 0, 0);
+        
+        // Print all permanent variables to values which represent structure
+        //in its current configuration
+        for (i = 0; i < NEQ; ++i) {
+            fprintf(OFP[7], "%e,%e\n", *(pd+i), *(pf+i));
+        }
+        
+        for (i = 0; i < NE_TR*2+NE_FR*14+NE_SH*18; ++i) {
+            fprintf(OFP[7], "%e\n", *(pef+i));
+        }
+        
+        for (i = 0; i < NJ*3; ++i) {
+            fprintf(OFP[7], "%e\n", *(px+i));
+        }
+        
+        for (i = 0; i < NE_TR+NE_FR*3+NE_SH*3; ++i) {
+            fprintf(OFP[7], "%e,%e,%e\n", *(pc1+i), *(pc2+i), *(pc3+i));
+        }
+        
+        // Truss
+        for (i = 0; i < NE_TR; ++i) {
+            fprintf(OFP[7], "%e\n", *(pdefllen+i));
+        }
+        
+        // Frame
+        for (i = 0; i < NE_FR; ++i) {
+            fprintf(OFP[7], "%e,%e\n", *(pdefllen+NE_TR+i), *(pllength+NE_TR+i));
+        }
+        
+        for (i = 0; i < NE_FR; ++i) {
+            for (j = 0; j < 14; ++j) {
+                fprintf(OFP[7], "%e\n", *(pefFE+i*14+j));
+            }
+        }
+        
+        for (i = 0; i < NE_FR; ++i) {
+            for (j = 0; j < 6; ++j) {
+                fprintf(OFP[7], "%e\n", *(pxfr+i*6+j));
+            }
+        }
+        
+        for (i = 0; i < NE_FR*2; ++i) {
+            fprintf(OFP[7], "%d\n", *(pyldflag+i));
+        }
+        
+        // Shell
+        if (ANAFLAG == 2) {
+            for (i = 0; i < NE_SH; ++i) {
+                fprintf(OFP[7], "%e\n", *(pdeffarea+i));
+            }
+            for (i = 0; i < NE_SH; ++i) {
+                for (j = 0; j < 3; ++j) {
+                    fprintf(OFP[7], "%e\n", *(pdefslen+i*3+j));
+                }
+            }
+        } else {
+            for (i = 0; i < NE_SH; ++i) {
+                fprintf(OFP[7], "%e\n", *(pdeffarea+i));
+            }
+            for (i = 0; i < NE_SH; ++i) {
+                for (j = 0; j < 3; ++j) {
+                    fprintf(OFP[7], "%e,%e\n", *(pdefslen+i*3+j), *(pchi+i*3+j));
+                }
+            }
+            for (i = 0; i < NE_SH; ++i) {
+                for (j = 0; j < 9; ++j) {
+                    fprintf(OFP[7], "%e,%e\n", *(pefN+i*9+j), *(pefM+i*9+j));
+                }
+            }
+        }
+        
+        // Signal the end of permenant variables of the structure in its current configuration
+        fprintf (OFP[7], "%d,%d,%d\n", 0, 0, 0);
+    }
+    
+    fclose(OFP[7]);
+}
+
+void restartStep(long lss, double *puc, double *pvc, double *pac, double *pss, double *psm, double *pd,
+                 double *pf, double *pef, double *px, double *pc1, double *pc2, double *pc3, double *pdefllen,
+                 double *pllength, double *pefFE, double *pxfr, int *pyldflag, double *pdeffarea, double *pdefslen,
+                 double *pchi, double *pefN, double *pefM)
+{
+    
+    int i, j, k;
+    
+    if (ALGFLAG == 5) {
+        
+        // Read in displacements, velocities, and accelerations from checkpoint file
+        for (i = 0; i < NEQ; ++i){
+            fscanf(IFP[3], "%le,%le,%le\n", &puc[i], &pvc[i], &pac[i]);
+        }
+        
+        fscanf(IFP[3], "%d,%d,%d\n", &i, &j, &k);
+        
+        if (i == 0 && j == 0 && k == 0) {
+            printf ("Read in displacements, velocities, and accelerations complete\n");
+        }
+        
+        // Read in stiffness and mass matrices from checkpoint file
+        for (i = 0; i < lss; ++i) {
+            fscanf(IFP[3], "%le,%le\n", &pss[i], &psm[i]);
+        }
+        
+        fscanf(IFP[3], "%d,%d\n", &i, &j);
+        
+        if (i == 0 && j == 0) {
+            printf ("Read in stiffness and mass matrices complete\n");
+        }
+        
+        // Read in all permanent variables to values which represent structure
+        //in its current configuration
+        for (i = 0; i < NEQ; ++i) {
+            fscanf(IFP[3], "%le,%le\n", &pd[i], &pf[i]);
+        }
+        
+        // General
+        for (i = 0; i < NE_TR*2+NE_FR*14+NE_SH*18; ++i) {
+            fscanf(IFP[3], "%le\n", &pef[i]);
+        }
+        
+        for (i = 0; i < NJ*3; ++i) {
+            fscanf(IFP[3], "%le\n", &px[i]);
+        }
+        
+        for (i = 0; i < NE_TR+NE_FR*3+NE_SH*3; ++i) {
+            fscanf(IFP[3], "%le,%le,%le\n", &pc1[i], &pc2[i], &pc3[i]);
+        }
+        
+        // Truss
+        for (i = 0; i < NE_TR; ++i) {
+            fscanf(IFP[3], "%le\n", &pdefllen[i]);
+        }
+        
+        // Frame
+        for (i = 0; i < NE_FR; ++i) {
+            fscanf(IFP[3], "%le,%le\n", &pdefllen[NE_TR+i], &pllength[NE_TR+i]);
+        }
+        
+        for (i = 0; i < NE_FR; ++i) {
+            for (j = 0; j < 14; ++j) {
+                fscanf(IFP[3], "%le\n", &pefFE[i*14+j]);
+            }
+        }
+        
+        for (i = 0; i < NE_FR; ++i) {
+            for (j = 0; j < 6; ++j) {
+                fscanf(IFP[3], "%le\n", &pxfr[i*6+j]);
+            }
+        }
+        
+        for (i = 0; i < NE_FR*2; ++i) {
+            fscanf(IFP[3], "%d\n", &pyldflag[i]);
+        }
+        
+        // Shell
+        if (ANAFLAG == 2) {
+            for (i = 0; i < NE_SH; ++i) {
+                fscanf(IFP[3], "%le\n", &pdeffarea[i]);
+            }
+            for (i = 0; i < NE_SH; ++i) {
+                for (j = 0; j < 3; ++j) {
+                    fscanf(IFP[3], "%le\n", &pdefslen[i*3+j]);
+                }
+            }
+        } else {
+            for (i = 0; i < NE_SH; ++i) {
+                fscanf(IFP[3], "%le\n", &pdeffarea[i]);
+            }
+            for (i = 0; i < NE_SH; ++i) {
+                for (j = 0; j < 3; ++j) {
+                    fscanf(IFP[3], "%le,%le\n", &pdefslen[i*3+j], &pchi[i*3+j]);
+                }
+            }
+            for (i = 0; i < NE_SH; ++i) {
+                for (j = 0; j < 9; ++j) {
+                    fscanf(IFP[3], "%le,%le\n", &pefN[i*9+j], &pefM[i*9+j]);
+                }
+            }
+        }
+        
+        // Signal the end of permenant variables of the structure in its current configuration
+        fscanf (IFP[3], "%d,%d,%d\n", &i, &j, &k);
+        
+        if (i == 0 && j == 0 && k == 0) {
+            printf ("Read in permenant variables complete\n");
+            printf ("Read in checkpoint file complete\n");
+        }
+    }
 }

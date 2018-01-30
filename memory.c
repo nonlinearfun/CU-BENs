@@ -56,7 +56,7 @@
 #include <stdlib.h>
 #include "prototypes.h"
 
-extern FILE *OFP[7];
+extern FILE *OFP[8];
 
 int * alloc_int (long arraylen)
 {
