@@ -1,8 +1,8 @@
 //********************************************************************************
 //**																			**
-//**  Pertains to CU-BEN ver 3.1415												**
+//**  Pertains to CU-BEN ver 4.0												**
 //**																			**
-//**  Copyright (c) 2017 C. J. Earls                                            **
+//**  Copyright (c) 2018 C. J. Earls                                            **
 //**  Developed by C. J. Earls, Cornell University                              **
 //**  All rights reserved.														**
 //**                                                                            **
@@ -67,7 +67,6 @@ int struc (long *pjcode, long *pminc, int *pwrpres, long *pjnt)
     long i, j, k, l, n, o, p, q, r, ptr; // Initialize function variables
     long NE_BR = NE_SBR + NE_FBR;
     int m, flag = 0, errchk;
-    //int *jflag = alloc_int (NJ*3);
     int *jflag = alloc_int (NJ*4);
     if (jflag == NULL) {
         return 1;
@@ -109,11 +108,8 @@ int struc (long *pjcode, long *pminc, int *pwrpres, long *pjnt)
         return 1;
     }
     
-    /* Joint-element connectivity flags track element-types connected to each joint;
-     initialized to zeros, which assumes "floating" joint */
-    /* Warping restraint flags track warping restraint at a joint (array 1) and number of
-     frame elements connected to a joint (array 2); initialized to zeros, which assumes
-     member ends are fixed against warping */
+    /* Joint-element connectivity flags tracks element-types connected to each joint - initialized to zero, which assumes "floating" joint */
+    /* Warping restraint flag tracks warping restraint at a joint (array 1) and number of frame elements connected to a joint (array 2) - initialized to zeros, which assumes member ends are fixed against warping */
     for (i = 0; i < NJ*3; ++i) {
         jflag[i] = *(pwrpres+i) = 0;
     }
@@ -133,8 +129,7 @@ int struc (long *pjcode, long *pminc, int *pwrpres, long *pjnt)
         fscanf(IFP[0], "%ld,%ld\n", pminc+ptr+i*2, pminc+ptr+i*2+1);
         jflag[(*(pminc+ptr+i*2)-1)*3+1]++; // Frame element is connected to Joint j
         jflag[(*(pminc+ptr+i*2+1)-1)*3+1]++; // Frame element is connected to Joint k
-        /* Increment warping restraint flags on joints to reflect number of frame
-         members framing into joint */
+        /* Increment warping restraint flags on joints to reflect number of frame members framing into joint */
         (*(pwrpres+(*(pminc+ptr+i*2)-1)*3+1))++;
         (*(pwrpres+(*(pminc+ptr+i*2+1)-1)*3+1))++;
     }
@@ -291,9 +286,7 @@ int struc (long *pjcode, long *pminc, int *pwrpres, long *pjnt)
         }
     }
     
-    /* Determine if joint DOF(s) is free due to no joint connection with truss
-     (DOFs 1 thru 3), shell (DOFs 4 thru 6), or frame (DOF 7) elements */
-    
+    /* Determine if joint DOF(s) is free due to no joint connection with truss (DOFs 1 thru 3), shell (DOFs 4 thru 6), or frame (DOF 7) elements */
     for (i = 0; i < NJ; ++i) {
         if (jflag[i*3+1] == 0) {
             if (jflag[i*3+2] == 0) {
@@ -1231,11 +1224,8 @@ int skylin (long *pmaxa, long *pmcode, long *plss, long *pjcode, long *pkht, lon
         }
     }
     
-    /* Define column height array, kht.  Each address in kht corresponds to a column in
-     the stiffness matrix; the value of the address defines the skyline height above
-     the diagonal entry. */
-    /* Iterate over truss elements to span columns in mcode (LM array using Bathe's
-     notation) */
+    /* Define column height array, kht.  Each address in kht corresponds to a column in the stiffness matrix; the value of the address defines the skyline height above the diagonal entry. */
+    /* Iterate over truss elements to span columns in mcode (LM array using Bathe's notation) */
     for (i = 0; i < NE_TR; ++i) {
         min = NEQ; // Guess at a reasonably large "minimum" to get things started
         for (j = 0; j < 6; ++j) {
@@ -1248,18 +1238,14 @@ int skylin (long *pmaxa, long *pmcode, long *plss, long *pjcode, long *pkht, lon
             k = *(pmcode+i*6+j);
             // Does the mcode entry correspond to a global DOF?
             if (k != 0) {
-                /* Use the mcode to discern column height kht.  The maximum difference
-                 between non-zero mcode entries, (k - min), corresponding to given
-                 element, defines the column height in the stiffness matrix,
-                 corresponding to the degree of freedom "k". */
+                /* Use the mcode to discern column height kht.  The maximum difference between non-zero mcode entries, (k - min), corresponding to given element, defines the column height in the stiffness matrix, corresponding to the degree of freedom "k". */
                 if ((k - min) > *(pkht+k-1)) {
                     *(pkht+k-1) = k - min;
                 }
             }
         }
     }
-    /* Iterate over frame elements to span columns in mcode (LM array using Bathe's
-     notation) */
+    /* Iterate over frame elements to span columns in mcode (LM array using Bathe's notation) */
     ptr = NE_TR * 6;
     for (i = 0; i < NE_FR; ++i) {
         min = NEQ; // Guess at a reasonably large "minimum" to get things started
@@ -1273,18 +1259,14 @@ int skylin (long *pmaxa, long *pmcode, long *plss, long *pjcode, long *pkht, lon
             k = *(pmcode+ptr+i*14+j);
             // Does the mcode entry correspond to a global DOF?
             if (k != 0) {
-                /* Use the mcode to discern column height kht.  The maximum difference
-                 between non-zero mcode entries, (k - min), corresponding to given
-                 element, defines the column height in the stiffness matrix,
-                 corresponding to the degree of freedom "k". */
+                /* Use the mcode to discern column height kht.  The maximum difference between non-zero mcode entries, (k - min), corresponding to given element, defines the column height in the stiffness matrix, corresponding to the degree of freedom "k". */
                 if ((k - min) > *(pkht+k-1)) {
                     *(pkht+k-1) = k - min;
                 }
             }
         }
     }
-    /* Iterate over shell elements to span columns in mcode (LM array using Bathe's
-     notation) */
+    /* Iterate over shell elements to span columns in mcode (LM array using Bathe's notation) */
     ptr = NE_TR * 6 + NE_FR * 14;
     for (i = 0; i < NE_SH; ++i) {
         min = NEQ; // Guess at a reasonably large "minimum" to get things started
@@ -1298,10 +1280,7 @@ int skylin (long *pmaxa, long *pmcode, long *plss, long *pjcode, long *pkht, lon
             k = *(pmcode+ptr+i*18+j);
             // Does the mcode entry correspond to a global DOF?
             if (k != 0) {
-                /* Use the mcode to discern column height kht.  The maximum difference
-                 between non-zero mcode entries, (k - min), corresponding to given
-                 element, defines the column height in the stiffness matrix,
-                 corresponding to the degree of freedom "k". */
+                /* Use the mcode to discern column height kht.  The maximum difference between non-zero mcode entries, (k - min), corresponding to given element, defines the column height in the stiffness matrix, corresponding to the degree of freedom "k". */
                 if ((k - min) > *(pkht+k-1)) {
                     *(pkht+k-1) = k - min;
                 }
@@ -1309,16 +1288,14 @@ int skylin (long *pmaxa, long *pmcode, long *plss, long *pjcode, long *pkht, lon
         }
     }
     
-    /* Generate maxa which provides the addresses in the stiffness array for the diagonal
-     elements of original stiffness matrix */
+    /* Generate maxa which provides the addresses in the stiffness array for the diagonal elements of original stiffness matrix */
     *pmaxa = 1;
     for (i = 0; i < NEQ; ++i) { // Set counter to number of diagonal elements
         /* Last diagonal term + column height + one equals new diagonal address
          Last array element is used to define length of stiffness array */
         *(pmaxa+i+1) = *(pmaxa+i) + (*(pkht+i)) + 1;
     }
-    /* Length of stiffness matrix.  This is true since last element of maxa is the
-     address of the final skyline element, plus 1 */
+    /* Length of stiffness matrix.  This is true since last element of maxa is the address of the final skyline element, plus 1 */
     if (SLVFLAG == 0) {
         *plss = *(pmaxa+NEQ) - 1;
     }
@@ -1339,8 +1316,7 @@ int load (double *pq, double *pefFE_ref, double *px, double *pllength, double *p
     //long ntstpsinpt;
     // Distributed load vector in global and local coordinate systems, respectively
     double W[3], w[3];
-    /* Element fixed-end force vector in global coordinate system, w.r.t. local joints i
-     and j */
+    /* Element fixed-end force vector in global coordinate system, w.r.t. local joints i and j */
     double QFij[14];
     double T[14][14]; // Coordinate transformation matrix
     double T_rl[14][14]; // Rigid link transformation matrix
@@ -1406,8 +1382,7 @@ int load (double *pq, double *pefFE_ref, double *px, double *pllength, double *p
                             fprintf(IFP[1], "%ld,%d,%le\n", fr, dir, mag);
                         }
                         
-                        /* Assign magnitude of distributed load to appropriate location
-                         within global distributed load vector */
+                        /* Assign magnitude of distributed load to appropriate location within global distributed load vector */
                         W[0] = W[1] = W[2] = 0;
                         W[dir-1] = mag;
                         
@@ -1440,8 +1415,7 @@ int load (double *pq, double *pefFE_ref, double *px, double *pllength, double *p
                             }
                         }
                         
-                        /* Compute fixed-end axial and shear forces and fixed-end moments,
-                         w.r.t. local coordinate system */
+                        /* Compute fixed-end axial and shear forces and fixed-end moments, w.r.t. local coordinate system */
                         *(pefFE_ref+fr*14) = *(pefFE_ref+fr*14+7) =
                         -w[0] * (*(pllength+NE_TR+fr)) / 2;
                         *(pefFE_ref+fr*14+1) = *(pefFE_ref+fr*14+8) =
@@ -1465,8 +1439,7 @@ int load (double *pq, double *pefFE_ref, double *px, double *pllength, double *p
                                         case (0):
                                             break; // Do not store loads at supports
                                         default:
-                                            /* Transform element fixed-end force vector from
-                                             local into global coordinate system */
+                                            /* Transform element fixed-end force vector from local into global coordinate system */
                                             sum = 0;
                                             for (l = 0; l < 14; ++l) {
                                                 sum += T[l][i*7+j] * (*(pefFE_ref+fr*14+l));
@@ -1477,8 +1450,7 @@ int load (double *pq, double *pefFE_ref, double *px, double *pllength, double *p
                                 }
                             }
                         } else {
-                            /* Transform element fixed-end force vector from local into
-                             global coordinate system */
+                            /* Transform element fixed-end force vector from local into global coordinate system */
                             for (i = 0; i < 14; ++i) {
                                 sum = 0;
                                 for (j = 0; j < 14; ++j) {
@@ -1513,8 +1485,7 @@ int load (double *pq, double *pefFE_ref, double *px, double *pllength, double *p
                                         case (0):
                                             break; // Do not store loads at supports
                                         default:
-                                            /* Transform element fixed-end force vector to
-                                             global joints 1 and 2 */
+                                            /* Transform element fixed-end force vector to global joints 1 and 2 */
                                             sum = 0;
                                             for (l = 0; l < 14; ++l) {
                                                 sum += T_rl[i*7+j][l] * QFij[l];
@@ -1562,8 +1533,7 @@ int load (double *pq, double *pefFE_ref, double *px, double *pllength, double *p
             *(ptinpt+i) = *(ptinpt+i-1) + dt;
         }	
         
-        /* Scan and load user input applied forces.  Store only the applied forces corresponding 
-         to active DOFs */
+        /* Scan and load user input applied forces.  Store only the applied forces corresponding to active DOFs */
         kps = 0;
         i = 0;
         fscanf(IFP[0], "%ld,%d,%lf\n", &jt, &dir, &mag);
@@ -1631,8 +1601,7 @@ int load (double *pq, double *pefFE_ref, double *px, double *pllength, double *p
                 fscanf(IFP[0], "%ld,%d,%lf\n", &jt, &dir, &d);
             } while (jt != 0); // Check for last joint load
         }
-        /* Scan and load initial displ, vel and acc.  If dir = 4 u, v, and a refer to pressure dof
-         the its derivatives */
+        /* Scan and load initial displ, vel and acc.  If dir = 4 u, v, and a refer to pressure DOF and its derivatives */
         fscanf(IFP[0], "%ld,%d,%lf,%lf,%lf\n", &jt, &dir, &d, &v, &a);
         if (jt != 0) { // Check for joint loading
             do {

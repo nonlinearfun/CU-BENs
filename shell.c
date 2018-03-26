@@ -1,8 +1,8 @@
 //********************************************************************************
 //**																			**
-//**  Pertains to CU-BEN ver 3.1415												**
+//**  Pertains to CU-BEN ver 4.0												**
 //**																			**
-//**  Copyright (c) 2017 C. J. Earls                                            **
+//**  Copyright (c) 2018 C. J. Earls                                            **
 //**  Developed by C. J. Earls, Cornell University                              **
 //**  All rights reserved.														**
 //**                                                                            **
@@ -61,7 +61,7 @@
 
 extern long NJ, NE_TR, NE_FR, NE_SH, NEQ;
 extern int ANAFLAG, ALGFLAG, OPTFLAG, SLVFLAG;
-extern FILE *IFP[2], *OFP[5];
+extern FILE *IFP[4], *OFP[8];
 
 void prop_sh (double *px, double *pemod, double *pnu, double *pxlocal, double *pthick, double *pdens,
     double *pfarea, double *pslength, double *pyield, double *pc1, double *pc2,
