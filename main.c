@@ -80,11 +80,6 @@
     24-dof continuum brick (solid and fluid)
  
  Input data:
-    enter checkpoint and restart flag (in main) - CHKPT, RFLAG
-        *** for CHKPT, specify how often to write checkpoint file, i.e. write every CHKPT time steps
-        *** for RFLAG:
-        0 - restart write off
-        1 - restart write on
     enter flag for analysis type (in main) - ANAFLAG
         1 - 1st order elastic
         2 - 2nd order elastic
@@ -101,6 +96,14 @@
         4 - (Dynamic) Newmark Implicit Integration Method
         5 - (Dynamic) Nonlinear Newmark Implicit Integration Method
         *** for 1st order elastic analysis, ALGFLAG is automatically set to 0
+    if (ALGFLAG > 3) {
+        enter checkpoint and restart flag (in main) - CHKPT, RFLAG
+            *** for CHKPT, specify how often to write checkpoint file, i.e. write every CHKPT time steps
+                *** if not interested in producing checkpoint files, specify CHKPT == 0
+            *** for RFLAG:
+                0 - restart write off
+                1 - restart write on
+    }
     enter flag for solver algorithm type (in main) - SLVFLAG
         0 - CU_BEN for symmetric matrices
         1 - CLAPACK solver for symmetric and non-symmetric matrices
@@ -130,9 +133,11 @@
         *** for warping DOFs - jnum,jdir,restrnt
         0 - fixed
         1 - free
-    enter joint nonzero displacement(s) (in skylin) - jnum,jdir; end = 0,0
-        0 - fixed
-        1 - free
+    if (ALGFLAG > 3) {
+        enter joint nonzero displacement(s) on boundary (in skylin) - jnum,jdir; end = 0,0
+            0 - fixed
+            1 - free
+    }
     enter joint coordinates (in prop) - x[i,1],x[i,2],x[i,3]; i = 1 to NJ
     if (NE_TR > 0) {
         enter truss element properties (in prop_tr); i = 1 to NE_TR:
@@ -350,27 +355,37 @@ int main (int argc, char **argv)
         IFP[0] = fopen("model_def.txt", "r"); // Open input file for reading
     } while (IFP[0] == 0);
     
-    fscanf (IFP[0], "%d,%d\n", &CHKPT, &RFLAG);
-    if (CHKPT <= 0) {
-        fprintf(OFP[0], "\n***ERROR*** Invalid checkpoint value\n");
-        goto EXIT1;
+    // Read in analysis / algorithm type from input file
+    fscanf(IFP[0], "%d,", &ANAFLAG);
+    if (ANAFLAG == 4) {
+        fscanf(IFP[0], "%d\n", &FSIINCFLAG);
     }
-    if (RFLAG != 0 && RFLAG != 1) {
-        fprintf(OFP[0], "\n***ERROR*** Invalid restart flag\n");
-        goto EXIT1;
-    }
+    fscanf(IFP[0], "%d\n", &ALGFLAG);
     
-    if (RFLAG == 1) {
-        int errchk;
-        char oldname[] = "results2.txt";
-        char newname[] = "results2(old).txt";
-        errchk = rename(oldname, newname);
-        
-        if(errchk == 0) {
-            printf("File renamed successfully\n");
-        } else {
-            printf("\n***ERROR*** Unable to rename the file\n");
+    // If dynamic analysis, read in restart information
+    if (ALGFLAG > 3){
+        fscanf (IFP[0], "%d,%d\n", &CHKPT, &RFLAG);
+        if (CHKPT < 0) {
+            fprintf(OFP[0], "\n***ERROR*** Invalid checkpoint value\n");
             goto EXIT1;
+        }
+        if (RFLAG != 0 && RFLAG != 1) {
+            fprintf(OFP[0], "\n***ERROR*** Invalid restart flag\n");
+            goto EXIT1;
+        }
+        
+        if (RFLAG == 1) {
+            int errchk;
+            char oldname[] = "results2.txt";
+            char newname[] = "results2(old).txt";
+            errchk = rename(oldname, newname);
+            
+            if(errchk == 0) {
+                printf("File renamed successfully\n");
+            } else {
+                printf("\n***ERROR*** Unable to rename the file\n");
+                goto EXIT1;
+            }
         }
     }
     
@@ -382,12 +397,7 @@ int main (int argc, char **argv)
         } while (OFP[i] == 0);
     }
     
-    // Read in analysis / algorithm /solver type from input file
-    fscanf(IFP[0], "%d,", &ANAFLAG);
-    if (ANAFLAG == 4) {
-        fscanf(IFP[0], "%d\n", &FSIINCFLAG);
-    }
-    fscanf(IFP[0], "%d\n", &ALGFLAG);
+    // Read in solver type from input file
     fscanf(IFP[0], "%d\n", &SLVFLAG);
     
     if (ALGFLAG < 4) { // Static analysis
@@ -1593,9 +1603,14 @@ int main (int argc, char **argv)
             fscanf(IFP[0], "%ld,%lf\n", &ntstpsinpt, &ttot);
             
             // Calculate dt
-            dt = ttot/ntstpsinpt; ntstpsinpt += 1;
-        }
-        else {
+            dt = ttot/ntstpsinpt;
+            ntstpsinpt += 1;
+            
+            if (CHKPT == 0){
+                CHKPT = ntstpsinpt + 1;
+            }
+            
+        } else {
             ntstpsinpt = 0;
         }
         
@@ -3897,7 +3912,7 @@ int main (int argc, char **argv)
                                 }
                             }
                         }
-                        if (k % CHKPT == 0) {
+                        if ((k % CHKPT == 0) && (k != 0)) {
                             checkPoint(k, lss, uc, vc, ac, ss, sm, d, f, ef, x, c1, c2, c3, defllen,
                                        llength, efFE, xfr, yldflag, deffarea, defslen, chi, efN, efM);
                         }

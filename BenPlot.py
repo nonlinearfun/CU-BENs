@@ -1,6 +1,6 @@
 ##********************************************************************************##
 ##**																			**##
-##**  BenPre Version 1.1                                                        **##
+##**  BenPlot Version 1.1                                                        **##
 ##**																			**##
 ##**  Copyright (c) 2018 C. J. Earls                                            **##
 ##**  Developed by C. J. Earls, Cornell University                              **##

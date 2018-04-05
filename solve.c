@@ -395,7 +395,7 @@ int solve (long *pjcode, double *pss, double *pss_fsi, double *psm, double *psm_
                     *(pam+i) = *(pac+i);
                 }
                 
-                if (k % CHKPT == 0){
+                if ((k % CHKPT == 0) && (k != 0)){
                     sprintf(file, "results8.txt");
                     do {
                         OFP[7] = fopen(file, "w"); // Open last successful checkpoint file

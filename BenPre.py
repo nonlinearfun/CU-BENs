@@ -1,6 +1,6 @@
 ##********************************************************************************##
 ##**																			**##
-##**  BenPre Version 1.3                                                        **##
+##**  BenPre Version 1.4                                                        **##
 ##**																			**##
 ##**  Copyright (c) 2018 C. J. Earls                                            **##
 ##**  Developed by C. J. Earls, Cornell University                              **##
@@ -164,6 +164,16 @@ elif ((ALGFLAG == 3) and (ANAFLAG == 1)):
 
 model_def.write('%d\n' % ANAFLAG)
 model_def.write('%d\n' % ALGFLAG)
+
+#If dynamic analysis, user inputs restart information
+if (ALGFLAG > 3):
+    checkRestart = input("Run restart capability?\n[0 - No / 1 - Yes]\n>> ")
+    if (checkRestart == 0):
+        model_def.write('0,0')
+    else:
+        CHKPT = input("Enter time step interval to write checkpoint restart file:\n>> ")
+        RFLAG = input("Run analysis from last written checkpoint file:\n[0 - No / 1 - Yes]\n>> ")
+        model_def.write('%d,%d\n' % (CHKPT,RFLAG))
 
 #User inputs solver algorithm type
 SLVFLAG = input("Enter solver algorithm type:\n[0 - CU-BEN for symmetric matrices / 1 - CLAPACK solver for symmetric and non-symmetric matrices]\n>> ")

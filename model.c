@@ -1175,8 +1175,8 @@ int skylin (long *pmaxa, long *pmcode, long *plss, long *pjcode, long *pkht, lon
         *(ppmot+i) = 0;
     }
     
-    // Prescribed displacement boundary conditions is only available for non-FSI analysis
-    if (ANAFLAG != 4) {
+    // Prescribed displacement boundary conditions is only available for non-FSI analysis and dynamic analysis
+    if ((ANAFLAG != 4) && (ALGFLAG > 3)) {
         for (i = 0; i < NEQ; ++i) {
             // Read in joint number and prescribed displacement direction from input file
             fscanf(IFP[0], "%ld,%ld\n", &j, &k);
