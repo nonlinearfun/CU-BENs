@@ -169,7 +169,7 @@ model_def.write('%d\n' % ALGFLAG)
 if (ALGFLAG > 3):
     checkRestart = input("Run restart capability?\n[0 - No / 1 - Yes]\n>> ")
     if (checkRestart == 0):
-        model_def.write('0,0')
+        model_def.write('0,0\n')
     else:
         CHKPT = input("Enter time step interval to write checkpoint restart file:\n>> ")
         RFLAG = input("Run analysis from last written checkpoint file:\n[0 - No / 1 - Yes]\n>> ")
@@ -199,7 +199,29 @@ line_Boundary = [(index, row.index(var)) for index, row in enumerate(CUBEN) if v
 line_Boundary = [y[0] for y in line_Boundary]
 line_Boundary = [j for j in line_Boundary if ((j < end_TimeSteps) and (j > line_TimeSteps))]
 num_Boundary = len(line_Boundary[:])
+#Determine if any Boundary conditions are nonzero displacement BCs
+if (ALGFLAG > 3):
+    for i in range(0,num_Boundary):
+        check = len(CUBEN[line_Boundary[i]][:])
+        if (check > 1):
+            try:
+                line_Boundary_nz
+            except NameError:
+                line_Boundary_nz = line_Boundary[i]
+                line_Boundary_nz = [line_Boundary_nz]
+            else:
+                line_Boundary_nz += line_Boundary[i]
+    try:
+        line_Boundary_nz
+    except NameError:
+        pass
+    else:
+        num_Boundary_nz = len(line_Boundary_nz[:])
+        for i in range(0,num_Boundary_nz):
+            line_Boundary = [j for j in line_Boundary if j != line_Boundary_nz[i]]
+        num_Boundary = len(line_Boundary[:])
 
+#Assign correct fixities to fixed boundary conditions
 for i in range(0,num_Boundary):
     BC_name = CUBEN[line_Boundary[i]+1][0]
     var = " nset=" + BC_name
@@ -256,6 +278,71 @@ for i in range(0,num_Boundary):
 
 #Terminate list in model_def.txt using 0,0
 model_def.write('0,0\n')
+
+#If running dynamic analysis, collect nonzero displacement boundary conditions if any exist
+if (ALGFLAG > 3):
+    #Collect joint constraints from BC-set in .inp file to denote nonzero displacement
+    #If nonzero boundary conditions not defined
+    try:
+        line_Boundary_nz
+    except NameError:
+        pass
+    #If nonzero boundary conditions defined
+    else:
+        #Assign correct fixities to fixed boundary conditions
+        for i in range(0,num_Boundary_nz):
+            BC_name = CUBEN[line_Boundary_nz[i]+1][0]
+            var = " nset=" + BC_name
+            line_BCset = [(index, row.index(var)) for index, row in enumerate(CUBEN) if var in row]
+            line_BCset = line_BCset[0][0]
+            var = "*Step"
+            line_Step = [(index, row.index(var)) for index, row in enumerate(CUBEN) if var in row]
+            line_Step = [y[0] for y in line_Step]
+            var = "*End Assembly"
+            line_Assembly = [(index, row.index(var)) for index, row in enumerate(CUBEN) if var in row]
+            line_Assembly = [y[0] for y in line_Assembly]
+    
+            test = [j for j in line_Nset if j > line_BCset]
+            test = test + [j for j in line_Elset if j > line_BCset]
+            test = test+ [j for j in line_Step if j > line_BCset]
+            test = test+ [j for j in line_Assembly if j > line_BCset]
+            end_BCset = min(test)
+    
+            BCset_length = end_BCset - line_BCset - 1
+    
+            var = "** "
+            line_star = [(index, row.index(var)) for index, row in enumerate(CUBEN) if var in row]
+            line_star = [y[0] for y in line_star]
+            test = [j for j in line_star if j > line_Boundary_nz[i]]
+            name_test = [j for j in line_Boundary if j > line_Boundary_nz[i]]
+            for j in range(0,len(name_test)):
+                if CUBEN[name_test[j]-1][0] == BC_name:
+                    test = test + [name_test[j]]
+                elif CUBEN[name_test[j]-2][0] == BC_name:
+                    test = test + [name_test[j]-1]
+            end_Boundary = min(test)
+            Boundary_length = end_Boundary - line_Boundary_nz[i] - 1
+
+            BCset = CUBEN[(line_BCset + 1):(end_BCset)]
+    
+            BCset_array = None
+    
+            for j in range(0,BCset_length):
+                for k in range(1,len(BCset[:][j])):
+                    if BCset[j][k] < BCset[j][k-1]:
+                        BCset_array = range(int(BCset[0][0]),int(BCset[j][k-1])+1,int(BCset[j][k]))
+
+            if BCset_array:
+                for j in range(0,len(BCset_array)):
+                    for l in range(0,Boundary_length):
+                        model_def.write('%d,%d\n' % (int(BCset_array[j]), int(CUBEN[(line_Boundary_nz[i]+1+l)][1])))
+            else:
+                for j in range(0,BCset_length):
+                    for k in range(0,len(BCset[:][j])):
+                        for l in range(0,Boundary_length):
+                            model_def.write('%d,%d\n' % (int(BCset[j][k]), int(CUBEN[(line_Boundary_nz[i]+1+l)][1])))
+
+    model_def.write('0,0\n')
 
 #Collect joint coordinates from *Node
 coords = CUBEN[(line_node + 1):(line_elem)]
@@ -444,6 +531,30 @@ else: #Dynamic
     if line_Amp:
         line_Amp = [y[0] for y in line_Amp]
         num_Amp = len(line_Amp)
+        #Check if Amplitude refers to nonzero condition instead of load history
+        try:
+            line_Boundary_nz
+        except NameError:
+            pass
+        else:
+            for i in range(0,num_Boundary_nz):
+                BC_Amp_name = CUBEN[line_Boundary_nz[i]][1]
+                BC_Amp_name = BC_Amp_name[11:]
+                for j in range(0,num_Amp):
+                    Amp_name = CUBEN[line_Amp[j]][1]
+                    Amp_name = Amp_name[6:]
+                    if Amp_name == BC_Amp_name:
+                        try:
+                            line_Amp_nz
+                        except NameError:
+                            line_Amp_nz = line_Amp[j]
+                            line_Amp_nz = [line_Amp_nz]
+                        else:
+                            line_Amp_nz += line_Amp[j]
+            for i in range(0,num_Boundary_nz):
+                line_Amp = [j for j in line_Amp if j != line_Amp_nz[i]]
+            num_Amp = len(line_Amp[:])
+        #Start collecting info about load history
         if (num_Amp == 1):
             line_Amp = line_Amp[0]
             test = [j for j in line_star if j > line_Amp]
@@ -564,7 +675,55 @@ else: #Dynamic
     
     #Terminate list in model_def.txt using 0,0,0
     model_def.write('0,0,0\n')
-    
+
+    #If nonzero boundary conditions defined
+    try:
+        line_Boundary_nz
+    except NameError:
+        pass
+    else:
+        #Determine if Abaqus File contains load history
+        var = "*Amplitude"
+        line_Amp = [(index, row.index(var)) for index, row in enumerate(CUBEN) if var in row]
+        if line_Amp:
+            line_Amp = [y[0] for y in line_Amp]
+            num_Amp = len(line_Amp)
+            num_Amp_nz = len(line_Amp_nz[:])
+        #Start collecting info about load history
+        if (num_Amp_nz == 1):
+            line_Amp_nz = line_Amp_nz[0]
+            test = [j for j in line_star if j > line_Amp_nz]
+            test = test + [j for j in line_Amp if j > line_Amp_nz]
+            end_Amp = min(test)
+            Amp_line_length = end_Amp - line_Amp_nz - 1
+        else:
+            for i in range(0,num_Amp_nz):
+                test = [j for j in line_star if j > line_Amp_nz[i]]
+                test = test + [j for j in line_Amp_nz if j > line_Amp_nz[i]]
+                test = test + [j for j in line_Amp if j > line_Amp_nz[i]]
+                end_Amp = min(test)
+                Amp_line_length = end_Amp - line_Amp_nz[i] - 1
+                if (Amp_line_length > 1):
+                    line_Amp_nz = line_Amp_nz[i]
+                    break
+
+        NZBC_pattern = [0 for x in range(ntstpsinpt+1)]
+        
+        for i in range(0,Amp_line_length):
+            for j in range(0, len(CUBEN[:][line_Amp_nz+1+i]),2):
+                k = int(round(float(CUBEN[line_Amp_nz+1+i][j])/(ttot/ntstpsinpt)))
+                NZBC_pattern[k] = float(CUBEN[line_Amp_nz+1+i][j+1])
+        
+        for i in range(0,num_Boundary_nz):
+            for j in range(0,BCset_length):
+                for k in range(0,len(BCset[:][j])):
+                    for l in range(0,Boundary_length):
+                        for m in range(0,ntstpsinpt+1):
+                            model_def.write('%d,%d,%g\n' % (int(BCset[j][k]), int(CUBEN[(line_Boundary_nz[i]+1+l)][1]), float(CUBEN[(line_Boundary_nz[i]+1+l)][3])*NZBC_pattern[m]))
+
+    #Terminate list in model_def.txt using 0,0,0
+    model_def.write('0,0,0\n')
+
     #enter all non-zero initial conditions for node displacement, velocity, and acceleration (in load)
     #joint,dir,disp,vel,acc;
     if line_Time0:
