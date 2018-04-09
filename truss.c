@@ -1,8 +1,8 @@
 //********************************************************************************
 //**																			**
-//**  Pertains to CU-BEN ver 3.1415												**
+//**  Pertains to CU-BEN ver 4.0												**
 //**																			**
-//**  Copyright (c) 2017 C. J. Earls                                            **
+//**  Copyright (c) 2018 C. J. Earls                                            **
 //**  Developed by C. J. Earls, Cornell University                              **
 //**  All rights reserved.														**
 //**                                                                            **
@@ -59,7 +59,7 @@
 
 extern long NJ, NE_TR, NEQ;
 extern int ANAFLAG, ALGFLAG, OPTFLAG, SLVFLAG;
-extern FILE *IFP[2], *OFP[5];
+extern FILE *IFP[4], *OFP[8];
 
 void prop_tr (double *px, double *pemod, double *pcarea, double *pdens, double *pllength,
     double *pyield, double *pc1, double *pc2, double *pc3, long *pminc)

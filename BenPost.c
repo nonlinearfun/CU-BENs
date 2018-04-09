@@ -8,7 +8,7 @@
 
 //********************************************************************************//
 //**																			**//
-//**  BenPost Version 1.2.1                                                       **//
+//**  BenPost Version 1.2.1                                                     **//
 //**																			**//
 //**  Copyright (c) 2016 C. J. Earls                                            **//
 //**  Developed by C. J. Earls, Cornell University                              **//

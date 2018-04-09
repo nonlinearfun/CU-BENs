@@ -16,4 +16,4 @@ ben.exe: $(OBJ)
 	$(CC) -o $@ $^ $(CFLAGS) $(LIBS)
 
 clean:
-	rm $(OBJ) ben.exe
+	rm $(OBJ) ben.exe results*.txt

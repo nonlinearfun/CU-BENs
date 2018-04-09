@@ -1,8 +1,8 @@
 //********************************************************************************
 //**																			**
-//**  Pertains to CU-BEN ver 3.1415												**
+//**  Pertains to CU-BEN ver 4.0												**
 //**																			**
-//**  Copyright (c) 2017 C. J. Earls                                            **
+//**  Copyright (c) 2018 C. J. Earls                                            **
 //**  Developed by C. J. Earls, Cornell University                              **
 //**  All rights reserved.														**
 //**                                                                            **
@@ -213,7 +213,7 @@ int solve (long *pjcode, double *pss, double *pss_fsi, double *psm, double *psm_
         if (ALGFLAG == 4){ // Dynamic: linear Newmark Intergration Method
             
             char CblasRowMajor, CblasNoTrans;
-            // Initialize a copy of effective stiffness matrix for prescribed displacement matrix computation
+            // Initialize a copy of effective stiffness matrix for nonzero displacement matrix computation
             double *pKeffcp = alloc_dbl (*(pmaxa+NEQ)-1);
             if (pKeffcp == NULL) {
                 // Pass control to closeio function
@@ -225,7 +225,7 @@ int solve (long *pjcode, double *pss, double *pss_fsi, double *psm, double *psm_
             if (RFLAG == 1) {
                 // Open I/O for business!
                 do {
-                    IFP[3] = fopen("results8.txt", "r"); // Open input file for reading
+                    IFP[3] = fopen("results8.txt", "r"); // Open last successful checkpoint file
                 } while (IFP[3] == 0);
                 
                 fscanf(IFP[3], "%d\n", &tstp);
@@ -311,7 +311,7 @@ int solve (long *pjcode, double *pss, double *pss_fsi, double *psm, double *psm_
                     }
                 }
                 
-                // Calculate static force vector if generalized-alpha method applied
+                // Calculate static force vector if generalized-alpha method specified
                 if (alphaf != 0){
                     if(ANAFLAG != 4 && SLVFLAG == 0){// Non-FSI analysis, using skyline function
                         skymult (pmaxa, pss, pdd);
@@ -395,13 +395,13 @@ int solve (long *pjcode, double *pss, double *pss_fsi, double *psm, double *psm_
                     *(pam+i) = *(pac+i);
                 }
                 
-                if (k % CHKPT == 0){
+                if ((k % CHKPT == 0) && (k != 0)){
                     sprintf(file, "results8.txt");
                     do {
-                        OFP[7] = fopen(file, "w"); // Open output file for writing
+                        OFP[7] = fopen(file, "w"); // Open last successful checkpoint file
                     } while (OFP[7] == 0);
                     
-                    // Print the time step of occurrence
+                    // Read in restart time step
                     fprintf(OFP[7], "%ld\n", k);
                     
                     // Print displacements, velocities, and accelerations
