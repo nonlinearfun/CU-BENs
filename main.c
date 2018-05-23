@@ -131,12 +131,10 @@
     enter joint constraint(s) (in struc) - jnum,jdir; end = 0,0
         *** For acoustic fluid elements, constraint direction 7 corresponds with pressure
         *** for warping DOFs - jnum,jdir,restrnt
-        0 - fixed
-        1 - free
-    if (ALGFLAG > 3) {
-        enter joint nonzero displacement(s) on boundary (in skylin) - jnum,jdir; end = 0,0
             0 - fixed
             1 - free
+    if (ALGFLAG > 3) {
+        enter joint nonzero displacement(s) on boundary (in skylin) - jnum,jdir; end = 0,0
     }
     enter joint coordinates (in prop) - x[i,1],x[i,2],x[i,3]; i = 1 to NJ
     if (NE_TR > 0) {
@@ -242,6 +240,37 @@
                 enter reference uniformly distributed load(s) on frame elements (in load) -
                     frame,dir,force; end = 0,0,0
             }
+            if (ALGFLAG == 1) {
+                enter maximum load proportionality factor (in main) - lpfmax
+            }
+            else if (ALGFLAG == 2) {
+                enter load proportionality factor parameters (in main):
+                    maximum lambda - lpfmax
+                    initial lambda - lpf
+                    increment of lambda - dlpf
+                    maximum increment of lambda - dlpfmax
+                    minimum increment of lambda - dlpfmin
+                    *** enter on single line as: lpfmax,lpf,dlpf,dlpfmax,dlpfmin
+                enter maximums / minimums on counters (in main):
+                    maximum number of iterations within load increment - itemax
+                    maximum number of times to step back load due to unconverged solution - submax
+                    minimum number of converged solutions before increasing increment of lambda - solmin
+                    *** enter on single line as: itemax,submax,solmin
+            }
+            else { //MSAL
+                enter MSAL parameters:
+                    initial prescribed displacement at DOF "k" (in msal) - jnum,jdir,dk
+                    factor limiting size of load increment (in main) - alpha
+                    threshold to eliminate load control in the arc length criterion in the vicinity of a critical point; a minimum value of 0.1 is recommended (in main) - psi_thresh
+                    optimum number of iterations; a value of 6 is recommended (in main) - iteopt
+                    maximum lambda and allowable displacment (in main) - lpfmax,dkimax
+                enter maximums / minimums on counters (in main):
+                    maximum number of iterations within load increment - itemax
+                    maximum number of times to step back load due to unconverged solution - submax
+                    maximum number of times to step back load due to arc length criterion producing imaginary roots - imagmax
+                    maximum number of times to step back load due to arc length criterion producing two negative roots - negmax
+                    *** enter on single line as: itemax,submax,imagmax,negmax
+            }
         }
         else { // Dynamic Analysis
             if (ALGFLAG == 4){
@@ -301,37 +330,6 @@
                     minimum number of converged solutions before increasing increment of lambda - solmin
                     *** enter on single line as: itemax,submax,solmin
             }
-        }
-        if (ALGFLAG == 1) {
-            enter maximum load proportionality factor (in main) - lpfmax
-        }
-        else if (ALGFLAG == 2) {
-            enter load proportionality factor parameters (in main):
-                maximum lambda - lpfmax
-                initial lambda - lpf
-                increment of lambda - dlpf
-                maximum increment of lambda - dlpfmax
-                minimum increment of lambda - dlpfmin
-                *** enter on single line as: lpfmax,lpf,dlpf,dlpfmax,dlpfmin
-            enter maximums / minimums on counters (in main):
-                maximum number of iterations within load increment - itemax
-                maximum number of times to step back load due to unconverged solution - submax
-                minimum number of converged solutions before increasing increment of lambda - solmin
-                *** enter on single line as: itemax,submax,solmin
-        }
-        else { //MSAL
-            enter MSAL parameters:
-                initial prescribed displacement at DOF "k" (in msal) - jnum,jdir,dk
-                factor limiting size of load increment (in main) - alpha
-                threshold to eliminate load control in the arc length criterion in the vicinity of a critical point; a minimum value of 0.1 is recommended (in main) - psi_thresh
-                optimum number of iterations; a value of 6 is recommended (in main) - iteopt
-                maximum lambda and allowable displacment (in main) - lpfmax,dkimax
-            enter maximums / minimums on counters (in main):
-                maximum number of iterations within load increment - itemax
-                maximum number of times to step back load due to unconverged solution - submax
-                maximum number of times to step back load due to arc length criterion producing imaginary roots - imagmax
-                maximum number of times to step back load due to arc length criterion producing two negative roots - negmax
-                *** enter on single line as: itemax,submax,imagmax,negmax
         }
     }
     enter tolerances on out-of-balance displacements, forces, and energy (in main) -
