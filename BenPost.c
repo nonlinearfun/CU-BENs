@@ -17,6 +17,7 @@
 //**  Contributors:                                                             **//
 //**    Heather Reed                                                            **//
 //**    Justyna Kosianka                                                        **//
+//**    Wensi Wu                                                                **//
 //**                                                                            **//
 //**  Redistribution and use in source and binary forms, with or without		**//
 //**  modification, are permitted provided that the following conditions are	**//
@@ -110,7 +111,13 @@ int main (void)
     for (i = 0; i < 4; ++i) {
         fscanf(ifp[0], "%s", junk_char);
     }
-    fscanf(ifp[0], "%s", junk_char);
+    if (strcmp(junk_char, "Algorithm") == 0) {
+        for (i = 0; i < 2; ++i) {
+            fscanf(ifp[0], "%s", junk_char);
+        }
+    } else {
+        fscanf(ifp[0], "%s", junk_char);
+    }
     
     if (strcmp(junk_char, "Direct") == 0 || strcmp(junk_char, "Newton") == 0 || strcmp(junk_char, "Dynamic") == 0) {
         for (i = 0; i < 6; ++i) {
