@@ -728,7 +728,6 @@ int matpart (long *pmaxa, long *pkht, double *pss, double *pqtot, double *puc, i
                 k--;
                 for (j = 0; j < NBC; ++j) {
                     if (k == *(pij+j)) {
-                        // if (kk== *(pij+j)) {
                         *(pss+kk-1) = 0;
                     }
                 }
