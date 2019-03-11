@@ -350,7 +350,7 @@ int main (int argc, char **argv)
     
     // Open I/O for business!
     do {
-        IFP[0] = fopen("model_def.txt", "r"); // Open input file for reading
+        IFP[0] = fopen("model_def_pm_coarse.txt", "r"); // Open input file for reading
     } while (IFP[0] == 0);
     
     // Read in analysis / algorithm type from input file
