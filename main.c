@@ -3442,7 +3442,8 @@ int main (int argc, char **argv)
             
             //Loop through each time step to update stiffness and mass matrix
             do {
-                                //Initialize temporary time increment interval variables
+                
+                //Initialize temporary time increment interval variables
                 dt_temp = ddt * dt;
                 sub_dt = ddt;
                 tsflag = 0;

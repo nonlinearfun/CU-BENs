@@ -727,16 +727,13 @@ int matpart (long *pmaxa, long *pkht, double *pss, double *pqtot, double *puc, i
             for (kk = kl; kk <= ku; ++kk) {
                 k--;
                 for (j = 0; j < NBC; ++j) {
-                    if (k == *(pij+j)) {
+                    if (k != *(pij+j) && *(pij+j) <= k) {
+                        *(pqtot+k) -= (*(pss+kk-1))*(*(puc+n-1));
+                        *(pss+kk-1) = 0;
+                    } else if (k == *(pij+j) && *(pij+j) <= k) {
                         *(pss+kk-1) = 0;
                     }
                 }
-            }
-            k = n-1;
-            for (kk = kl; kk <= ku; ++kk) {
-                k--;
-                *(pqtot+k) -= (*(pss+kk-1))*(*(puc+n-1));
-                *(pss+kk-1) = 0;
             }
         }
         n = *(pij+NBC-1-i)+1;
