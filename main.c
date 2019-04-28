@@ -86,7 +86,7 @@
         3 - 2nd order inelastic
         *** for 1st order elastic analysis, all 2nd order / inelastic analysis related variables must be entered (for consistency in input files), but will be ignored during solution
         4 - Fluid-structure interaction
-        *** for FSI analysis, also enter (on same line), flag for fsi incidence array - FSIINCFLAG tracks which elements have FSI nodes, then which face of the element (if the element is a brick) is on the FSI interface, and then the (global) nodes that are on the interface.  This is used later in the assembly if the global A and G matrices that translate the normal pressures into x, y, and z, displacements (i.e. the off-diagonal matrices in the monolithic K and M matrices.)
+        *** for FSI analysis, also enter (on same line), flag for fsi incidence array - FSIINCFLAG tracks which elements have FSI nodes, then which face of the element (if the element is a brick) is on the FSI interface, and then the (global) nodes that are on the interface.  This is used later in the assembly of the global A and G matrices that translate the normal pressures into x, y, and z, displacements (i.e. the off-diagonal matrices in the monolithic K and M matrices.)
             0 - Input fsi incidence array in fsiinc.txt
             1 - Allow BEN to calculate fsi incidence array
     enter flag for solution algorithm type (in main) - ALGFLAG
@@ -98,6 +98,8 @@
         *** for 1st order elastic analysis, ALGFLAG is automatically set to 0
     if (ALGFLAG > 3) {
         enter checkpoint and restart flag (in main) - CHKPT, RFLAG
+            CHKPT specifies frequency of writes of the analysis state 
+            RFLAG signals whether the current alnalysis is a "restart" of a previously checkpointed analysis.
             *** for CHKPT, specify how often to write checkpoint file, i.e. write every CHKPT time steps
                 *** if not interested in producing checkpoint files, specify CHKPT == 0
             *** for RFLAG:
