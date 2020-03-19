@@ -34,7 +34,10 @@
 #include "prototypes.h"
 
 
-#include <Accelerate/Accelerate.h>
+#if defined(__APPLE__)
+#  include <Accelerate/Accelerate.h>
+#endif
+
 //#include "f2c.h"
 
 /*
@@ -453,9 +456,9 @@ int main (int argc, char **argv)
     }
     
     // Memory management variables
-    /* Pointer-to-pointer-to-int array (7 arrays of type int are defined during program
+    /* Pointer-to-pointer-to-int array (9 arrays of type int are defined during program
      execution) */
-    int *p2p2i[7];
+    int *p2p2i[9];
     // Counter to track number of arrays of type int for which memory is allocated
     int ni = 0;
     /* Pointer-to-pointer-to-long array (9 arrays of type long are defined during program
@@ -463,9 +466,9 @@ int main (int argc, char **argv)
     long *p2p2l[9];
     // Counter to track number of arrays of type long for which memory is allocated
     int nl = 0;
-    /* Pointer-to-pointer-to-double array (102 arrays of type double are defined during
+    /* Pointer-to-pointer-to-double array (111 arrays of type double are defined during
      program execution) */
-    double *p2p2d[102];
+    double *p2p2d[111];
     // Counter to track number of arrays of type double for which memory is allocated
     int nd = 0;
     
@@ -1310,6 +1313,26 @@ int main (int argc, char **argv)
     p2p2d[nd] = Meff;
     nd++;
     
+    // For use in UMFPACK routines
+    int *Ap = alloc_int (NEQ+1); //
+    if (Ap == NULL) {
+        goto EXIT2;
+    }
+    p2p2i[ni] = Ap;
+    ni++;
+    int *Ai = alloc_int (NEQ*NEQ); //
+    if (Ai == NULL) {
+        goto EXIT2;
+    }
+    p2p2i[ni] = Ai;
+    ni++;
+    double *Ax = alloc_dbl (NEQ*NEQ); //
+    if (Ax == NULL) {
+        goto EXIT2;
+    }
+    p2p2d[nd] = Ax;
+    nd++;
+    
     // Newmark integration constants
     double alphaf, alpham, numopt, spectrds;
     
@@ -1569,7 +1592,7 @@ int main (int argc, char **argv)
         
         // Pass control to solve function
         errchk = solve (jcode, ss, ss_fsi, sm, sm_fsi, sd_fsi, r, dd, maxa, &ssd, &det, um, vm, am, uc, vc, ac, qdyn, tstps,
-                        Keff, Reff, Meff, alpham, alphaf, ipiv, 0, 1, pdisp, kht, 0, ii, ij, 0);
+                        Keff, Reff, Meff, Ap, Ai, Ax, alpham, alphaf, ipiv, 0, 1, pdisp, kht, 0, ii, ij, 0);
     }
     
     // Analysis for non-FSI
@@ -1740,7 +1763,7 @@ int main (int argc, char **argv)
                 } else {
                     
                     // Pass control to solve function
-                    errchk = solve (jcode, ss, ss_fsi, sm, sm_fsi, sd_fsi, qtot, d, maxa, &ssd, &det, um, vm, am, uc, vc, ac, pinpt, tinpt, Keff, Reff, Meff, alpham, alphaf, ipiv, 0, 1, pdisp, kht, 0, ii, ij, 0);
+                    errchk = solve (jcode, ss, ss_fsi, sm, sm_fsi, sd_fsi, qtot, d, maxa, &ssd, &det, um, vm, am, uc, vc, ac, pinpt, tinpt, Keff, Reff, Meff, Ap, Ai, Ax, alpham, alphaf, ipiv, 0, 1, pdisp, kht, 0, ii, ij, 0);
                     
                     // Terminate program if errors encountered
                     if (errchk == 1) {
@@ -1907,11 +1930,11 @@ int main (int argc, char **argv)
                             if (ALGFLAG == 1 || (ALGFLAG == 2 && itecnt == 0)) {
                                 // Pass control to solve function
                                 errchk = solve (jcode, ss, ss_fsi, sm, sm_fsi, sd_fsi, r, dd, maxa, &ssd, &det, um, vm, am, uc, vc, ac, pinpt, tinpt,
-                                                Keff, Reff, Meff, alpham, alphaf, ipiv, 0, 1, pdisp, kht, 0, ii, ij, 0);
+                                                Keff, Reff, Meff, Ap, Ai, Ax, alpham, alphaf, ipiv, 0, 1, pdisp, kht, 0, ii, ij, 0);
                             } else {
                                 // Pass control to solve function
                                 errchk = solve (jcode, ss, ss_fsi, sm, sm_fsi, sd_fsi, r, dd, maxa, &ssd, &det, um, vm, am, uc, vc, ac, pinpt, tinpt,
-                                                Keff, Reff, Meff, alpham, alphaf, ipiv, 1, 1, pdisp, kht, 0, ii, ij, 0);
+                                                Keff, Reff, Meff, Ap, Ai, Ax, alpham, alphaf, ipiv, 1, 1, pdisp, kht, 0, ii, ij, 0);
                             }
                             // Terminate program if errors encountered
                             if (errchk == 1) {
@@ -2306,7 +2329,7 @@ int main (int argc, char **argv)
             } else {
                 // Pass control to solve function
                 errchk = solve (jcode, ss, ss_fsi, sm, sm_fsi, sd_fsi, q, ddq, maxa, ssd, &det, um, vm, am, uc, vc, ac, pinpt, tinpt,
-                                Keff, Reff, Meff, alpham, alphaf, ipiv, 0, 1, pdisp, kht, 0, ii, ij, 0);
+                                Keff, Reff, Meff, Ap, Ai, Ax, alpham, alphaf, ipiv, 0, 1, pdisp, kht, 0, ii, ij, 0);
                 
                 // Terminate program if errors encountered
                 if (errchk == 1) {
@@ -2404,7 +2427,7 @@ int main (int argc, char **argv)
                 } else {
                     // Pass control to solve function
                     errchk = solve (jcode, ss, ss_fsi, sm, sm_fsi, sd_fsi, r, ddr, maxa, ssd, &det, um, vm, am, uc, vc, ac, pinpt, tinpt,
-                                    Keff, Reff, Meff, alpham, alphaf, ipiv, 1, 1, pdisp, kht, 0, ii, ij, 0);
+                                    Keff, Reff, Meff, Ap, Ai, Ax, alpham, alphaf, ipiv, 1, 1, pdisp, kht, 0, ii, ij, 0);
                     
                     // Terminate program if errors encountered
                     if (errchk == 1) {
@@ -2723,7 +2746,7 @@ int main (int argc, char **argv)
                 } else {
                     // Pass control to solve function
                     errchk = solve (jcode, ss, ss_fsi, sm, sm_fsi, sd_fsi, q, ddq, maxa, ssd, &det, um, vm, am, uc, vc, ac, pinpt, tinpt,
-                                    Keff, Reff, Meff, alpham, alphaf, ipiv, 0, 1, pdisp, kht, 0, ii, ij, 0);
+                                    Keff, Reff, Meff, Ap, Ai, Ax, alpham, alphaf, ipiv, 0, 1, pdisp, kht, 0, ii, ij, 0);
                     
                     // Terminate program if errors encountered
                     if (errchk == 1) {
@@ -2839,7 +2862,7 @@ int main (int argc, char **argv)
                     } else {
                         // Pass control to solve function
                         errchk = solve (jcode, ss, ss_fsi, sm, sm_fsi, sd_fsi, r, ddr, maxa, ssd, &det, um, vm, am, uc, vc, ac, pinpt, tinpt,
-                                        Keff, Reff, Meff, alpham, alphaf, ipiv, 1, 1, pdisp, kht, 0, ii, ij, 0);
+                                        Keff, Reff, Meff, Ap, Ai, Ax, alpham, alphaf, ipiv, 1, 1, pdisp, kht, 0, ii, ij, 0);
                         
                         // Terminate program if errors encountered
                         if (errchk == 1) {
@@ -3245,7 +3268,7 @@ int main (int argc, char **argv)
             
             // Pass control to solve function
             errchk = solve (jcode, ss, ss, sm, sm, sd_fsi, r, dd, maxa, &ssd, &det, um, vm, am, uc, vc, ac, pinpt, tinpt,
-                            Keff, Reff, Meff, alpham, alphaf, ipiv, 0, 1, pdisp, kht, 0, ii, ij, 0);
+                            Keff, Reff, Meff, Ap, Ai, Ax, alpham, alphaf, ipiv, 0, 1, pdisp, kht, 0, ii, ij, 0);
             
             // Terminate program if errors encountered
             if (errchk == 1) {
@@ -3602,7 +3625,7 @@ int main (int argc, char **argv)
                             } else {
                                 // Pass control to solve function
                                 errchk = solve (jcode, ss, ss, sm, sm, sd_fsi, r, dd, maxa, &ssd, &det, uc_i, vc_i, ac_i, um, vm, am, qtot, tinpt,
-                                                Keff, Reff, Meff, alpham, alphaf, ipiv, 0, ddt, pdisp, kht, &itecnt, ii, ij, k);
+                                                Keff, Reff, Meff, Ap, Ai, Ax, alpham, alphaf, ipiv, 0, ddt, pdisp, kht, &itecnt, ii, ij, k);
                                 
                                 // Terminate program if errors encountered
                                 if (errchk == 1) {
