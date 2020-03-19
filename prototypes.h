@@ -311,7 +311,7 @@ solve.c
    (Bathe 1976, p. 257) */
 int solve (long *pjcode_fsi, double *pss, double *pss_fsi, double *psm, double *psm_fsi, double *psd_fsi, double *pr, double *pdd, long *pmaxa, double *pssd, int *pdet,
 		   double *pum, double *pvm, double *pam, double *puc, double *pvc, double *pac, double *pqdyn, double *ptstps, 
-		   double *pKeff, double *pReff, double *pMeff, double alpham, double alphaf, int *pipiv, int fact, double ddt, double *ppdisp, long *pkht, int *piter, int *pii, int *pij, int tstp);
+		   double *pKeff, double *pReff, double *pMeff, int *pAp, int *pAi, double *pAx, double alpham, double alphaf, int *pipiv, int fact, double ddt, double *ppdisp, long *pkht, int *piter, int *pii, int *pij, int tstp);
 
 /* This function performs LDL^t factorization of the stiffness matrix when using SLVFLAG == 0*/
 int skyfact (long *pmaxa, double *pss_temp, double *pssd, double *pdd, int fact, int *pdet);

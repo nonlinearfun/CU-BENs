@@ -39,6 +39,9 @@
 #  include <Accelerate/Accelerate.h>
 #endif
 
+//UMFPACK header files
+#include "umfpack.h"
+
 extern long NJ, SNDOF, FNDOF, NEQ, NBC, NTSTPS, NE_SBR, NE_FBR;
 extern double dt, ttot;
 extern int ANAFLAG, ALGFLAG, SLVFLAG, FSIFLAG, brFSI_FLAG, shFSI_FLAG, CHKPT, RFLAG;
@@ -47,7 +50,7 @@ extern FILE *IFP[4], *OFP[8];
 
 int solve (long *pjcode, double *pss, double *pss_fsi, double *psm, double *psm_fsi, double *psd_fsi, double *pr, double *pdd, long *pmaxa, double *pssd, int *pdet,
            double *pum, double *pvm, double *pam, double *puc, double *pvc, double *pac, double *pqdyn, double *ptstps,
-           double *pKeff, double *pReff, double *pMeff, double alpham, double alphaf, int *pipiv, int fact, double ddt, double *ppdisp, long *pkht, int *piter, int *pii, int *pij, int tstp)
+           double *pKeff, double *pReff, double *pMeff, int *pAp, int *pAi, double *pAx, double alpham, double alphaf, int *pipiv, int fact, double ddt, double *ppdisp, long *pkht, int *piter, int *pii, int *pij, int tstp)
 {
     
     // Initialize function variables
@@ -60,9 +63,16 @@ int solve (long *pjcode, double *pss, double *pss_fsi, double *psm, double *psm_
     double dt_temp;// Variable for time stepping scheme
     
     // Initialize CLAPACK variables
-    int n, lda, ldb, info, nrhs = 1;
+    int m, n, lda, ldb, info, nrhs = 1;
     
-    n = lda = ldb = NEQ;
+    m = n = lda = ldb = NEQ;
+    
+    // Initialize UMFPACK sparse solver variables
+    *(pAp) = 0;
+    long nz = 0;
+    
+    double *null = (double *) NULL;
+    void *Symbolic, *Numeric;
     
     // Pass residual array to the incremental displacements array
     for (i = 0; i < NEQ; ++i) {
@@ -92,15 +102,41 @@ int solve (long *pjcode, double *pss, double *pss_fsi, double *psm, double *psm_
             // Pass control to output function
             output (pr, &dum, pdd, puc, 1);
         }
+        
+        // UMFPACK iterative solver
+        else if (SLVFLAG == 2) { // SLVFLAG == 1;
+            
+            // Calculate arrays for sparse solver
+            for (i = 0; i < NEQ; ++i) {
+                for (j = 0; j < NEQ; ++j) {
+                    if (fabs(*(pss+i*NEQ+j)) > 1e-10) {
+                        *(pAp+i+1) = nz + 1;
+                        *(pAi+nz) = j;
+                        *(pAx+nz) = *(pss+i*NEQ+j);
+                        nz = nz + 1;
+                    }
+                }
+            }
+            
+            // Sparse solver function initializations
+            (void) umfpack_di_symbolic (n, n, pAp, pAi, pAx, &Symbolic, null, null);
+            (void) umfpack_di_numeric (pAp, pAi, pAx, Symbolic, &Numeric, null, null);
+            umfpack_di_free_symbolic (&Symbolic) ;
+            
+            // Solve system of equations for displacement vector uc
+            (void) umfpack_di_solve (UMFPACK_A, pAp, pAi, pAx, puc, pr, Numeric, null, null);
+            
+            for (i = 0; i < NEQ; ++i){
+                fprintf(OFP[5],"%lf\t",*(puc+i));
+            }
+            fprintf(OFP[5],"\n");
+            
+            umfpack_di_free_numeric (&Numeric);
+        }
     }
     
     // Dynamic analysis
     else if (ALGFLAG > 3) {
-        
-        // Initialize function variables
-        int m, n, lda, ldb, info, nrhs = 1;
-        m = n = lda = ldb = NEQ;
-        char trans = 'N';
         
         // Initialize effective stiffness matrix to zero
         if (SLVFLAG == 1) {
@@ -187,6 +223,24 @@ int solve (long *pjcode, double *pss, double *pss_fsi, double *psm, double *psm_
             else if (SLVFLAG == 1) {
                 dgetrf_(&m, &n, pKeff, &lda, pipiv, &info);
             }
+            else if (SLVFLAG == 2) {
+               
+                // Calculate arrays for sparse solver
+                for (i = 0; i < NEQ; ++i) {
+                    for (j = 0; j < NEQ; ++j) {
+                        if (fabs(*(pKeff+i*NEQ+j)) > 1e-10) {
+                            *(pAp+i+1) = nz + 1;
+                            *(pAi+nz) = j;
+                            *(pAx+nz) = *(pKeff+i*NEQ+j);
+                            nz = nz + 1;
+                        }
+                    }
+                }
+
+                (void) umfpack_di_symbolic (n, n, pAp, pAi, pAx, &Symbolic, null, null);
+                (void) umfpack_di_numeric (pAp, pAi, pAx, Symbolic, &Numeric, null, null);
+                umfpack_di_free_symbolic (&Symbolic) ;
+            }
         }
         
         if (ALGFLAG == 4){ // Dynamic: linear Newmark Intergration Method
@@ -259,7 +313,7 @@ int solve (long *pjcode, double *pss, double *pss_fsi, double *psm, double *psm_
                             *(pMeff+i) = *(psm+i)*((1-alpham)*((*(pum+i))*a0+(*(pvm+i))*a2+(*(pam+i))*a3)-alpham*(*(pam+i)))/(1-alphaf);
                         }
                     }
-                    else if (SLVFLAG == 1) { // using CLAPACK solver
+                    else if (SLVFLAG == 1 || SLVFLAG == 2) { // using CLAPACK or UMFPACK solver
                         for (i = 0; i < NEQ; ++i) {
                             sum = 0;
                             for (j = 0; j < NEQ; ++j) {
@@ -282,13 +336,18 @@ int solve (long *pjcode, double *pss, double *pss_fsi, double *psm, double *psm_
                 }
                 
                 // Calculate effective damping vector (re-use Meff)
-                // Add effective damping vector to effective load vector
                 if (ANAFLAG == 4) {
                     for (i = 0; i < NEQ; ++i) {
                         *(pMeff+i) = *(psd_fsi+i)*((*(pum+i)*a1+(*(pvm+i))*a4+(*(pam+i))*a5)-alphaf/(1-alphaf)*(*(pum+i)));
-                        *(pReff+i) += *(pMeff+i);
                     }
                 }
+                
+                // Add effective damping vector to effective load vector
+                 if (ANAFLAG == 4) {
+                     for (i = 0; i < NEQ; ++i) {
+                         *(pReff+i) += *(pMeff+i);
+                     }
+                 }
                 
                 // Calculate static force vector if generalized-alpha method specified
                 if (alphaf != 0){
@@ -349,6 +408,9 @@ int solve (long *pjcode, double *pss, double *pss_fsi, double *psm, double *psm_
                     else if (SLVFLAG == 1) {
                         dgetrs_(&trans, &n, &nrhs, pKeff, &lda, pipiv, pReff, &ldb, &info);
                     }
+                    else if (SLVFLAG == 2) {
+                        (void) umfpack_di_solve (UMFPACK_A, pAp, pAi, pAx, puc, pReff, Numeric, null, null);
+                    }
                 }
                 
                 if (SLVFLAG == 0 || SLVFLAG == 1) {
@@ -393,6 +455,10 @@ int solve (long *pjcode, double *pss, double *pss_fsi, double *psm, double *psm_
                     
                     fclose(OFP[7]);
                 }
+            }
+            
+            if (SLVFLAG == 2) {
+                umfpack_di_free_numeric (&Numeric);
             }
             
             if (pKeffcp != NULL) {
