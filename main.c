@@ -34,7 +34,10 @@
 #include "prototypes.h"
 
 
-#include <Accelerate/Accelerate.h>
+#if defined(__APPLE__)
+#  include <Accelerate/Accelerate.h>
+#endif
+
 //#include "f2c.h"
 
 /*

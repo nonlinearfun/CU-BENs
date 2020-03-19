@@ -35,7 +35,9 @@
 #include "prototypes.h"
 
 // CLAPACK header files
-#include <Accelerate/Accelerate.h>
+#if defined(__APPLE__)
+#  include <Accelerate/Accelerate.h>
+#endif
 
 extern long NJ, SNDOF, FNDOF, NEQ, NBC, NTSTPS, NE_SBR, NE_FBR;
 extern double dt, ttot;
