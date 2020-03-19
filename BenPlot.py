@@ -29,10 +29,10 @@ import csv
 import matplotlib.pyplot as plt
 
 #Input coordinates
-x_coord,y_coord,z_coord = map(float, raw_input("Enter Joint Coordinates to Plot [x,y,z]: ").split(','))
+x_coord,y_coord,z_coord = list(map(float, input("Enter Joint Coordinates to Plot [x,y,z]: ").split(',')))
 
 #Search results1.txt for joint number associated with coordinates
-results1 = list(csv.reader(open('results1.txt', 'rb'), delimiter='\t'))
+results1 = list(csv.reader(open('results1.txt', 'r'), delimiter='\t'))
 
 #Convert
 x_coord = str('%.6f' % x_coord)
@@ -69,19 +69,19 @@ z_lines = [z_row[i] for i in indices]
 
 #If coordinates have no joint number, output error and terminate
 if not x_lines:
-    print "Coordinates invalid"
+    print ("Coordinates invalid")
     exit()
 if not y_lines:
-    print "Coordinates invalid"
+    print ("Coordinates invalid")
     exit()
 if not z_lines:
-    print "Coordinates invalid"
+    print ("Coordinates invalid")
     exit()
 
 #Then get joint number
 joint_line = list(set(x_lines) & set(y_lines) & set(z_lines))
 if not joint_line:
-    print "Coordinates invalid"
+    print ("Coordinates invalid")
     exit()
 joint = results1[joint_line[0]][1]
 
@@ -129,14 +129,14 @@ if DOF[6] != 0:
 
 #If joint does not have DOFs, output error and terminate
 if not [i for i in DOF if i > 0]:
-    print "Chosen Coordinate does not have active DOFs"
+    print ("Chosen Coordinate does not have active DOFs")
     exit()
 
 #Go to results2 and track the column associated with DOF
-results2 = list(csv.reader(open('results2.txt', 'rb'), delimiter='\t'))
+results2 = list(csv.reader(open('results2.txt', 'r'), delimiter='\t'))
 results2 = results2[2:(len(results2)-1)][:]
 
-constant_axis = map(float,[d[1] for d in results2])
+constant_axis = list(map(float,[d[1] for d in results2]))
 
 #Plot seperate figure for each DOF
 fig_count = 1
@@ -145,7 +145,7 @@ for i in range(0,6):
     if DOF[i] != 0:
         plt.figure(fig_count)
         fig_count = fig_count+1
-        DOF_plot = map(float,[d[DOF[i]+3] for d in results2])
+        DOF_plot = list(map(float,[d[DOF[i]+3] for d in results2]))
         #If dynamic, plot time on x and displacement on y
         if ((results1[4][1] == 'Dynamic (Newmark)') or (results1[4][1] == 'Dynamic (Newmark with geometric nonlinearity)')):
             plt.plot(constant_axis,DOF_plot)
@@ -169,6 +169,6 @@ for i in range(0,6):
                 plt.xlabel('Warping')
             plt.title(DOF_label[i])
         else:
-            print "This type of analysis does not produce plot."
+            print ("This type of analysis does not produce plot.")
             exit()
         plt.show()
