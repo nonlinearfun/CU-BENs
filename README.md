@@ -19,7 +19,7 @@ Please follow the guidelines below for building CU-BENs on Mac OS X.
         ```bash
         which brew
         ```
-    - If Homebrew isn't already installed, run the following command to install Homebrew:"
+    - If Homebrew isn't already installed, run the following command to install Homebrew:
         ```bash
         /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
         ```
@@ -80,4 +80,4 @@ Please follow the guidelines below for building CU-BENs on Ubuntu.
     Make all
     ```
         
-A detailed overview of CU-BENs as well as the theory behind the finite element formulation can be found in the tutorial and theory manual, *italicized Introduction to CU-BEN* and *italicized CUBENs theory manual*. Sample input files are provided under the *italicized Sample_Input_Files* directory to exercise the diifferent built-in functions within CU-BENs. Sample input file *italicized model_def_5d_shell.txt* is used to exercise the restart function within CU-BENs. Please be sure you have ran *italicized model_def_5c_shell.txt* in advance. 
+A detailed overview of CU-BENs as well as the theory behind the finite element formulation can be found in the tutorial and theory manual, *Introduction to CU-BEN* and *CUBENs theory manual*. Sample input files are provided under the *Sample_Input_Files* directory to exercise the diifferent built-in functions within CU-BENs. Sample input file *model_def_5d_shell.txt* is used to exercise the restart function within CU-BENs. Please be sure you have ran *model_def_5c_shell.txt* in advance. 
