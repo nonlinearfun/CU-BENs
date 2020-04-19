@@ -12,10 +12,6 @@ ifeq ($(UNAME_S), Darwin)
 	LIBS = -lm /usr/lib/libblas.dylib /usr/lib/liblapack.dylib -lumfpack
 endif
 
-CFLAGS = -m64
-#linker paths to BLAS and LAPACK for use with Mac OS X 10.10 or later
-LIBS = -lm /usr/lib/libblas.dylib /usr/lib/liblapack.dylib -lumfpack
-
 DEPS = prototypes.h
 OBJ = arc.o brick.o frame.o fsi.o main.o memory.o misc.o model.o shell.o solve.o truss.o
 
